@@ -6,6 +6,9 @@ Extremely useful library for collecting and tracking performance metrics in your
 
 
 This library allows you to measure performance of your application by some common metrics and send this values to any target.
+
+
+
 Main features:
 - support most commonly used metrics;
 - support several targets to distribute counter values;
@@ -15,20 +18,20 @@ Main features:
 
 
 Supported metrics (counter types):
-- number of items (example: measure number of executed operations, number of received items and so on);
-- operations per second (example: measure performance of your code);
-- average count (example: measure average size of queue);
-- average time (example: measure average execution time of your functions);
-- moment time (example: fixate execution time of process that executed once);
-- elapsed time (example: measure the total execution time of your application).
+- Number of Items (example: measure umber of received requests);
+- Operations per Second (example: measure performance of your code);
+- Average Count (example: measure average size of queue);
+- Average Time (example: measure average execution time of your functions);
+- Moment Time (example: fixate time of some process that executing only once);
+- Elapsed Time (example: measure the total execution time of your application).
 
 
 
 Supported targets:
-- internal (values of counters available only inside your app);
-- windows performance counters (values can be read by windows performance monitor);
-- network (values sent to network service);
-- graphite (values sent to graphite/carbon server).
+- Internal (values are available only inside your app);
+- Windows Performance Counters (values can be read by windows performance monitor);
+- Network (values are sent to network service);
+- Graphite (values are sent to graphite/carbon server).
 
 
 
@@ -67,7 +70,7 @@ var counterFactory = new WinCounterFactory();
 PerfCounters.Init(counterFactory.CreateRootWrapper());
 counterFactory.InitAll();
 ```
-- use counters in this way:
+- use counters like this:
 ```C#
 PerfCounters.TestSingle.Count.Increment();
 ```
@@ -78,5 +81,5 @@ counterFactory.Dispose();
 
 
 ## Extended materials
-- Configuration
-- Usage
+- [Configuration](https://github.com/qoollo/performance-counters/wiki/Configuration)
+- [Usage](https://github.com/qoollo/performance-counters/wiki/Usage)

@@ -1,0 +1,175 @@
+﻿<#@ template  debug="true" language="C#" hostSpecific="true" #>
+<#@ output extension=".txt" #>
+<#@ Assembly Name="System.Core" #>
+<#@ Assembly Name="System.Xml.Linq" #>
+
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #> 
+<#@ import namespace="System.Runtime.Remoting.Messaging" #>
+
+<#@ include file="Helpers\MultiOutput.ttinclude" #>
+<#@ include file="Helpers\ConfigCommonData.ttinclude" #>
+<#@ include file="Helpers\XmlBasedConfigSampleFileGenerator.ttinclude" #>
+<#@ include file="Helpers\ConfigLoaderGenerator.ttinclude" #>
+<#@ include file="Helpers\ConfigSchemaGenerator.ttinclude" #>
+
+
+<#
+	
+	// Определяем, какой интерфейс будет парситься. Сам интерфейс объявляется в самом конце файла
+	Type RootInterface = typeof(IPerfCountersConfigurationSection);
+	// Пространство имён, в котором будут расположены все объекты
+	string NamespaceName = "Qoollo.PerformanceCounters.Configuration";
+	// Имя сборки, в которой будет находится сгенерированный файл кода
+	string AssemblyName = "Qoollo.PerformanceCounters";
+	// Помещать ли интерфейсы в сгенерированный файл (если они объявлены вне, то надо отключить)
+	bool GenerateInterfaces = false;
+	// Для смены имени секции нужно задать значение
+	string OverridedSectionName = null;
+	// Генерировать ли стандартный статический класс загрузки из AppConfig
+	bool GenerateAppConfigLoader = false;
+
+#>
+
+
+<#   
+	AppConfigGenerationParams Params = new AppConfigGenerationParams();
+	Params.NamespaceName = NamespaceName;
+	Params.AssemblyName = AssemblyName;
+	Params.GenerateInterface = GenerateInterfaces;
+	Params.SectionName = OverridedSectionName;
+	Params.GenerateAppConfigLoader = GenerateAppConfigLoader;
+
+	if (Params.SectionName == null)
+    {
+		Params.SectionName = NameResolveHelper.GetSectionNameByIntName(RootInterface);
+    }
+
+	this.GenerationEnvironment = new StringBuilder();
+	  
+	GenerateSampleConfigFileXmlBased(RootInterface, Params);
+	SaveOutput(RootInterface.Name + "_SampleAppConfig.config");
+
+	GenerateConfigXSD(RootInterface, Params);
+	SaveOutput(RootInterface.Name + "_AppConfigSchema.xsd");
+
+	GenerateConfigLoader(RootInterface, Params);
+	SaveOutput(RootInterface.Name + "_AppConfigLoader.cs");
+
+    DeleteOldOutputs();
+#>
+
+
+<#+
+// ==================================================================
+// ================== ЗДЕСЬ ОБЪЯВЛЯЮТСЯ ИНТЕРФЕЙСЫ ==================
+// ==================================================================
+
+
+
+    enum WinCountersInstantiationModeCfg
+    {
+        AlwaysCreateNew,
+        UseExistedIfPossible,
+        UseOnlyExisted
+    }
+
+    enum WinCountersPreferedBitnessCfg
+    {
+        SameAsOperatingSystemBitness,
+        Prefer32BitCounters,
+        Prefer64BitCounters
+    }
+
+	enum WinCountersExistedInstancesTreatmentCfg
+    {
+        IgnoreExisted,
+        LoadExisted,
+        RemoveExisted
+    }
+
+
+	[DefaultInternalElementAttribute("RootCounters")]
+    interface IPerfCountersConfigurationSection
+    {
+	    [ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlElementInjectedType, AllowInheritance = true)]
+        IPerfCountersConfiguration RootCounters { get; }
+    }
+
+
+    [ConfigSubstituteTypeAttribute(typeof(ICompositeCounters))]
+	[ConfigSubstituteTypeAttribute(typeof(INullCounters))]
+	[ConfigSubstituteTypeAttribute(typeof(IInternalCounters))]
+	[ConfigSubstituteTypeAttribute(typeof(IWinCounters))]
+	[ConfigSubstituteTypeAttribute(typeof(INetCounters))]
+	[ConfigSubstituteTypeAttribute(typeof(IGraphiteCounters))]
+    interface IPerfCountersConfiguration
+    {
+    }
+
+	[DefaultInternalElementAttribute("WrappedCounters")]
+    interface ICompositeCounters : IPerfCountersConfiguration
+    {
+	    [ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlElementInjectedType, AllowInheritance = true)]
+		//[CollectionRestrictionAttribute(MinElementCount = 1)]
+        List<IPerfCountersConfiguration> WrappedCounters { get; }
+    }
+
+    interface INullCounters: IPerfCountersConfiguration
+    {
+    }
+
+    interface IInternalCounters: IPerfCountersConfiguration
+    {
+    }
+
+    interface IWinCounters: IPerfCountersConfiguration
+    {
+	    [ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "UseExistedIfPossible")]
+        WinCountersInstantiationModeCfg InstantiationMode { get; }
+
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "")]
+        string CategoryNamePrefix { get; }
+
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = ".")]
+        string MachineName { get; }
+
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "false")]
+        bool IsReadOnlyCounters { get; }
+
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "SameAsOperatingSystemBitness")]
+        WinCountersPreferedBitnessCfg PreferedBitness { get; }
+
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "LoadExisted")]
+        WinCountersExistedInstancesTreatmentCfg ExistedInstancesTreatment { get; }
+    }
+
+
+	interface INetCounters : IPerfCountersConfiguration
+    {
+	    [ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "1000")]
+        int DistributionPeriodMs { get; }
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute)]
+        string ServerAddress { get; }
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "26115")]
+        int ServerPort { get; }
+    }
+
+	interface IGraphiteCounters : IPerfCountersConfiguration
+    {
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "1000")]
+        int DistributionPeriodMs { get; }
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "{MachineName}.{ProcessName}")]
+        string NamePrefixFormatString { get; }
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute)]
+        string ServerAddress { get; }
+		[ConfigPropertyDescriptionAttribute(ConfigPropertyStyle.XmlAttribute, IsRequired = false, DefaultValue = "2003")]
+        int ServerPort { get; }
+    }
+
+#>
+

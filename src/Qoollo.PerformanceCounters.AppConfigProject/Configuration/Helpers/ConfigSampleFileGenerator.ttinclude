@@ -1,0 +1,332 @@
+﻿<#
+	//@ template  debug="true" language="C#" 
+#>
+<#
+	//@ output extension=".txt" 
+#>
+<#@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="System.Core" #>
+
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #> 
+
+<#@ includeForIntellisenseOnly processor="tangibleT4Editor"  file="ConfigCommonData.ttinclude" #>
+
+
+<#+
+
+	public void GenerateSampleConfigFile(Type tp, AppConfigGenerationParams parameters)
+    {
+		WriteSampleAppConfig(tp, parameters.NamespaceName, parameters.AssemblyName, parameters.SectionName);
+    }
+
+
+
+
+
+
+			// Генерация примера конфига
+	private void WriteSampleAppConfig(Type intType, string ns, string assembly, string sectionName)
+	{
+		#>
+<configuration>
+    <configSections>
+        <section name="<#= sectionName #>" type="<#= ns #>.<#= NameResolveHelper.GetConfigClassNameByIntName(intType) #>, <#= assembly #>" allowExeDefinition="MachineToApplication" requirePermission="false" />
+    </configSections>
+
+<#+
+
+	this.PushIndent(Indent);
+
+	WriteInterfaceConfigElement(intType, sectionName, null, new HashSet<Type>(), false);
+
+	this.PopIndent();
+	#>
+
+</configuration>
+	<#+
+	}
+
+
+
+			// Генерация блока конфигурации по интерфейсу
+	private void WriteInterfaceConfigElement(Type intType, string elementName, string additAttrib, HashSet<Type> passedInterf, bool closeBranch)
+	{			
+		HashSet<Type> localPassedInterf = new HashSet<Type>(passedInterf);
+		localPassedInterf.Add(intType);
+
+		if (passedInterf.Contains(intType))
+			closeBranch = true;
+
+
+		bool emptyInner = true;
+		
+		this.Write("<" + elementName + (string.IsNullOrEmpty(additAttrib) ? "" : " " + additAttrib));
+		
+		// записываем свойства, разрешаемые в качестве атрибутов
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType).Where(o => GenerationHelper.IsSimpleType(o.PropertyType)))
+		{
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null || !attribVal.CanBeUsed || attribVal.FixedStyle != ConfigPropertyStyle.XmlAttribute)
+				continue;
+			
+			string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+			string defVal = NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(prop.PropertyType));
+			
+			this.Write(" " + name + "=\"" + defVal + "\"");
+		}
+
+		if (TypeHelper.GetPropertiesCascaded(intType).
+			Select(prop => GenerationHelper.ExtractDataForGoodProp(prop)).
+			Where(o => o != null && o.CanBeUsed).
+			Where(o => o.FixedStyle != ConfigPropertyStyle.XmlAttribute).
+			Any())
+        {
+			emptyInner = false;
+			this.WriteLine(">");
+        }
+		
+		this.PushIndent(Indent);
+
+		// записываем свойства, разрешаемые как элементы
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType))
+		{
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null)
+				continue;
+
+			if (attribVal.IsMallformed)
+				throw new Exception("bad property " + prop.Name);
+
+			if (!attribVal.CanBeUsed)
+				continue;
+			
+			
+			string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+			string defVal = NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(prop.PropertyType));
+			
+			if (attribVal.FixedStyle == ConfigPropertyStyle.XmlAttribute)
+			{
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.Dictionary)
+			{
+				if (attribVal.TypeKind == GenerationTypeKind.SimpleType)
+				{
+					this.WriteLine("<add key=\"" + name + "\"" + " value=\"" + defVal + "\"" + " />");
+				}
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElement)
+			{
+				if (attribVal.TypeKind == GenerationTypeKind.SimpleType)
+				{
+					this.WriteLine("<" + name + " value=\"" + defVal + "\"" + " />");
+				}
+				else if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					if (!(closeBranch && !attribVal.Attrib.IsRequired))
+					{
+						WriteInterfaceConfigElement(prop.PropertyType, name, null, localPassedInterf, closeBranch); 
+					}
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+					{
+						WriteListConfigElement(GenerationHelper.GetListElementType(prop.PropertyType), name, false, false, localPassedInterf, closeBranch);
+					}
+					else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+					{
+						WriteDictionaryConfigElement(
+							GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+							GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+							name, false, false, localPassedInterf, closeBranch);
+
+					}
+					else
+					{
+						throw new Exception("Unknown type");
+					}
+                }
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElementInjectedType)
+            {
+				if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					if (!(closeBranch && !attribVal.Attrib.IsRequired))
+					{
+						ConfigSubstituteTypeAttribute allSubstAttrib = null;
+						if (attribVal.Attrib.AllowInheritance)
+							allSubstAttrib = GenerationHelper.GetCfgSubstituteTypeAttribInit(prop.PropertyType)[0];
+						else
+							allSubstAttrib = GenerationHelper.GetOwnCfgSubstituteTypeAttrib(prop.PropertyType);
+
+						string testName = null;
+						if (allSubstAttrib != null)
+							testName = NameResolveHelper.GetXmlNameByCSName(allSubstAttrib.OverrideTypeName, allSubstAttrib.SubType);
+						else
+							testName = NameResolveHelper.GetXmlNameByCSName(prop.PropertyType);
+
+						this.WriteLine("<" + name + ">");
+						this.PushIndent(Indent);
+						if (attribVal.Attrib.AllowInheritance)
+							WriteInterfaceConfigElement(allSubstAttrib.SubType, testName, null, localPassedInterf, closeBranch); 
+						else
+							WriteInterfaceConfigElement(prop.PropertyType, testName, null, localPassedInterf, closeBranch); 
+						this.PopIndent();
+						this.WriteLine("</" + name + ">");
+					}
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+					{
+						WriteListConfigElement(GenerationHelper.GetListElementType(prop.PropertyType), name, true, attribVal.Attrib.AllowInheritance, localPassedInterf, closeBranch);
+					}
+					else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+					{
+						WriteDictionaryConfigElement(
+							GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+							GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+							name, true, attribVal.Attrib.AllowInheritance, localPassedInterf, closeBranch);
+
+					}
+					else
+					{
+						throw new Exception("Unknown type");
+					}
+                }
+            }
+		}		
+			
+		this.PopIndent();
+		
+		if (!emptyInner)
+			this.WriteLine("</" + elementName + ">");
+		else
+			this.WriteLine(" />");
+	}
+
+
+
+		// Генерация блока конфигурации для списка и массива
+	private void WriteListConfigElement(Type elemType, string elementName, bool injectedType, bool checkInheritance, HashSet<Type> passedInterf, bool closeBranch)
+	{
+		this.WriteLine("<" + elementName + ">");
+		this.PushIndent(Indent);
+
+		if (!closeBranch)
+        {
+			string elemAddTextVal = "add";
+			if (injectedType && GenerationHelper.IsComplexType(elemType))
+            {
+				var substAttr = GenerationHelper.GetOwnCfgSubstituteTypeAttrib(elemType);
+				if (substAttr != null)
+					elemAddTextVal = NameResolveHelper.GetXmlNameByCSName(substAttr.OverrideTypeName, elemType);
+				else
+					elemAddTextVal = NameResolveHelper.GetXmlNameByCSName(elemType);
+            }
+
+			if (injectedType && checkInheritance && GenerationHelper.IsComplexType(elemType))
+            {
+				var allSubstAttrib = GenerationHelper.GetCfgSubstituteTypeAttribInit(elemType);
+
+				for (int i = 0; i < allSubstAttrib.Length; i++)
+				{
+					WriteInterfaceConfigElement(allSubstAttrib[i].SubType, 
+						NameResolveHelper.GetXmlNameByCSName(allSubstAttrib[i].OverrideTypeName, allSubstAttrib[i].SubType), 
+						null, passedInterf, closeBranch);
+				}
+            }
+			else
+            {
+				for (int i = 0; i < 2; i++)
+				{
+					if (GenerationHelper.IsComplexType(elemType))
+					{
+						WriteInterfaceConfigElement(elemType, elemAddTextVal, null, passedInterf, closeBranch);
+					}
+					else if (GenerationHelper.IsSimpleType(elemType))
+					{
+						this.WriteLine("<add value=\"" + TypeHelper.GetTypeName(elemType) + "\"" + " />");
+					}
+					else
+					{
+						throw new Exception("bad list element type");
+					}
+				}
+            }
+        }
+		
+		this.PopIndent();
+		this.WriteLine("</" + elementName + ">");
+	}
+
+
+
+			// Генерация блока конфигурации для словаря
+	private void WriteDictionaryConfigElement(Type keyType, Type elemType, string elementName, bool injectedType, bool checkInheritance, HashSet<Type> passedInterf, bool closeBranch)
+	{
+		if (!GenerationHelper.IsSimpleType(keyType))
+        {
+			throw new Exception("Bad Dictionary Key type");
+        }
+
+		this.WriteLine("<" + elementName + ">");
+		this.PushIndent(Indent);
+		
+		string keyAddit = "key=\"" + TypeHelper.GetTypeName(keyType) + "\"";
+		
+		if (!closeBranch)
+        {
+			string elemAddTextVal = "add";
+			if (injectedType && GenerationHelper.IsComplexType(elemType))
+            {
+				var substAttr = GenerationHelper.GetOwnCfgSubstituteTypeAttrib(elemType);
+				if (substAttr != null)
+					elemAddTextVal = NameResolveHelper.GetXmlNameByCSName(substAttr.OverrideTypeName, elemType);
+				else
+					elemAddTextVal = NameResolveHelper.GetXmlNameByCSName(elemType);
+            }
+
+			if (injectedType && checkInheritance && GenerationHelper.IsComplexType(elemType))
+            {
+				var allSubstAttrib = GenerationHelper.GetCfgSubstituteTypeAttribInit(elemType);
+				
+				for (int i = 0; i < allSubstAttrib.Length; i++)
+				{
+					WriteInterfaceConfigElement(allSubstAttrib[i].SubType, 
+						NameResolveHelper.GetXmlNameByCSName(allSubstAttrib[i].OverrideTypeName, allSubstAttrib[i].SubType), 
+						keyAddit, passedInterf, closeBranch);
+                }
+            }
+			else
+            {
+				for (int i = 0; i < 2; i++)
+				{
+					if (GenerationHelper.IsComplexType(elemType))
+					{
+						WriteInterfaceConfigElement(elemType, elemAddTextVal, keyAddit, passedInterf, closeBranch);
+					}
+					else if (GenerationHelper.IsSimpleType(elemType))
+					{
+						this.WriteLine("<add " + keyAddit + " value=\"" + TypeHelper.GetTypeName(elemType) + "\"" + " />");
+					}
+					else
+					{
+						throw new Exception("bad dictionary value element type");
+					}
+				}
+            }
+
+        }
+		
+		this.PopIndent();
+		this.WriteLine("</" + elementName + ">");
+	}
+
+
+
+#>

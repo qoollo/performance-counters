@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Qoollo.PerformanceCounters.Config</id>
+    <title>Qoollo.PerformanceCounters configuration</title>
+    <version>2.0.0.2</version>
+    <authors>Qoollo</authors>
+    <owners>Qoollo</owners>
+    <licenseUrl>https://github.com/qoollo/performance-counters/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/qoollo/performance-counters</projectUrl>
+    <!--<iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>-->
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>XSD schema and sample App.config for Qoollo.PerformanceCounters.</description>
+    <releaseNotes>v2.0</releaseNotes>
+    <copyright>Copyright 2014</copyright>
+    <tags>Qoollo PerformanceCounters Performance Counters Perf Config Schema</tags>
+  </metadata>
+  <files>
+    <file src="PerfCountersConfigHelpers\PerfCountersAppConfigSchema.xsd" target="content\PerfCountersConfigHelpers\" />
+    <file src="PerfCountersConfigHelpers\PerfCountersAppConfigSample.config" target="content\PerfCountersConfigHelpers\" />
+  </files>
+</package>

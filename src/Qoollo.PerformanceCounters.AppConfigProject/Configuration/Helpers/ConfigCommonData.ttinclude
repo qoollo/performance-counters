@@ -1,0 +1,1045 @@
+﻿<#
+	//@ template language="C#" 
+#>
+
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #> 
+<#@ import namespace="System.Reflection" #>
+<#@ import namespace="System.Runtime.Serialization" #>
+
+<#+ 
+
+	const string Indent = "    ";
+
+	public class TypeHelper
+	{
+		// Получение имени типа в формате C#
+		public static string GetTypeName(Type type)
+		{
+			if (!type.IsGenericType)
+				return type.Name;
+			
+			string res = type.GetGenericTypeDefinition().Name;
+			int pos = res.IndexOf("`");
+			if (pos < 0)
+				return res;
+			
+			res = res.Substring(0, pos);
+			res += "<";
+			
+			foreach (var genParam in type.GetGenericArguments())
+			{
+				res += GetTypeName(genParam) + ", ";
+			}
+			
+			res = res.Substring(0, res.Length - 2);
+			res += ">";
+		
+			return res;
+		}
+
+		// Получение имени конструктора
+		public static string GetDefaultConstructorName(Type type)
+        {
+			if (!type.IsGenericType)
+				return type.Name;
+
+			string res = type.GetGenericTypeDefinition().Name;
+			int pos = res.IndexOf("`");
+			if (pos < 0)
+				return res;
+
+			return res.Substring(0, pos);
+        }
+		
+		// Получить дефолтное значение для типа
+		public T GetDefaultTypeVal<T>()
+		{
+			return default(T);
+		}
+		// Получить дефолтное значение для типа
+		public static object GetDefaultTypeVal(Type type)
+		{
+		   if (type.IsValueType)
+		   {
+		    	return Activator.CreateInstance(type);
+		   }
+		   return null;
+		}
+
+		// Получение всего перечня свойств для интерфейса
+		public static IEnumerable<PropertyInfo> GetPropertiesCascaded(Type tp)
+        {
+			if (tp.IsInterface)
+				return tp.GetProperties().Union(tp.GetInterfaces().SelectMany(o => o.GetProperties()));
+
+			return tp.GetProperties();
+        }
+	}
+
+
+	public class NameResolveHelper
+    {
+		// Разложить имя generic типа в виде plain строки
+		public static string GenericToPlainTypeName(string typeName)
+		{
+			return typeName.Replace('<', '_').Replace('>', '_');
+		}
+		public static string GenericToPlainTypeName(Type type)
+        {
+			return GenericToPlainTypeName(TypeHelper.GetTypeName(type));
+        }
+
+				// Получение имени конструктора
+		public static string GetDefaultConstructorName(string typeName)
+        {
+			int pos = typeName.IndexOf("<");
+			if (pos < 0)
+				return typeName;
+
+			return typeName.Substring(0, pos);
+        }
+
+
+		// Получение имени класса конфигурации по имени интерфейса
+		public static string GetConfigClassNameByIntName(string intName, bool isInerf = true)
+		{
+			intName = GenericToPlainTypeName(intName);
+
+			if (isInerf && intName.StartsWith("I"))
+				intName = intName.Substring(1, intName.Length - 1);
+			
+			string res = intName + "ConfigClass";
+			return res;
+		}
+		public static string GetConfigClassNameByIntName(Type intType)
+        {
+			return GetConfigClassNameByIntName(TypeHelper.GetTypeName(intType), intType.IsInterface);
+        }
+
+		// Получение имени класса, который реализует интерфейс
+		public static string GetImplementClassNameByIntName(string intName, bool isInterf = true)
+        {
+			string genericPart = "";
+			int genInd = intName.IndexOf("<");
+			if (genInd > 0)
+            {
+				genericPart = intName.Substring(genInd, intName.Length - genInd);
+				intName = intName.Substring(0, genInd);
+            }
+
+			if (isInterf && intName.StartsWith("I"))
+				intName = intName.Substring(1, intName.Length - 1);
+			
+			return intName + "Implement" + genericPart;
+        }
+		public static string GetImplementClassNameByIntName(Type tp)
+        {
+			return GetImplementClassNameByIntName(TypeHelper.GetTypeName(tp), tp.IsInterface);
+        }
+
+
+		// Получение имени секции по имени интерфейса
+		public static string GetSectionNameByIntName(string intName, bool isInterf = true)
+		{
+			intName = GenericToPlainTypeName(intName);
+
+			if (isInterf && intName.StartsWith("I"))
+				intName = intName.Substring(1, intName.Length - 1);
+			
+			return intName + "Section";
+		}
+		public static string GetSectionNameByIntName(Type type)
+        {
+			return GetSectionNameByIntName(TypeHelper.GetTypeName(type), type.IsInterface);
+        }
+
+		// Получение имени в конфиге по имени в Типе (первая буква переводится в нижний регистр)
+		public static string GetXmlNameByCSName(string name)
+		{
+			return Char.ToLower(name[0]).ToString() + name.Substring(1, name.Length - 1);
+		}
+		public static string GetXmlNameByCSName(Type type)
+        {
+			string plainName = GenericToPlainTypeName(TypeHelper.GetTypeName(type));
+
+			if (type.IsInterface && plainName.StartsWith("I"))
+				plainName = plainName.Substring(1, plainName.Length - 1);
+
+			return GetXmlNameByCSName(plainName);
+        }
+		public static string GetXmlNameByCSName(string overString, Type type)
+        {
+			return overString ?? GetXmlNameByCSName(type);
+        }
+
+
+		// Стандартное имя для типа элемента в словарном стиле
+		public static string GetXsdDefaultAddTypeName()
+        {
+			return "add__sp_xsdTp";
+        }
+
+		// Стандартное имя для типа элемента в словарном стиле
+		public static string GetXsdCustomBoolTypeName()
+        {
+			return "customBool__sp_xsdTp";
+        }
+
+		// Получение имени типа в XSD по исходному имени типа
+		public static string GetXsdTypeNameByCSName(string name)
+        {
+			return Char.ToLower(name[0]).ToString() + name.Substring(1, name.Length - 1) + "_xsdTp";
+        }
+		public static string GetXsdTypeNameByCSName(Type type)
+        {
+			string plainName = GenericToPlainTypeName(TypeHelper.GetTypeName(type));
+
+			if (type.IsInterface && plainName.StartsWith("I"))
+				plainName = plainName.Substring(1, plainName.Length - 1);
+
+			return GetXsdTypeNameByCSName(plainName);
+        }
+		public static string GetXsdTypeNameByCSName(string nsQual, Type type)
+        {
+			string plainName = GenericToPlainTypeName(TypeHelper.GetTypeName(type));
+
+			if (type.IsInterface && plainName.StartsWith("I"))
+				plainName = plainName.Substring(1, plainName.Length - 1);
+
+			return nsQual + GetXsdTypeNameByCSName(plainName);
+        }
+
+		// Получение имени встроенного типа XSD по типу tp
+		public static string GetXsdStandardSimpleType(Type tp, string defaultTp = "xs:string")
+        {
+			if (tp == typeof(long))
+				return "xs:long";
+			if (tp == typeof(ulong))
+				return "xs:unsignedLong";
+			if (tp == typeof(int))
+				return "xs:int";
+			if (tp == typeof(uint))
+				return "xs:unsignedInt";
+			if (tp == typeof(short))
+				return "xs:short";
+			if (tp == typeof(ushort))
+				return "xs:unsignedShort";
+			if (tp == typeof(byte))
+				return "xs:byte";
+			if (tp == typeof(decimal))
+				return "xs:decimal";
+			if (tp == typeof(string))
+				return "xs:string";
+			
+			if (tp == typeof(bool))
+				return "xs:boolean";
+			if (tp == typeof(float))
+				return "xs:float";
+			if (tp == typeof(double))
+				return "xs:double";
+
+			if (tp == typeof(DateTime))
+				return "xs:string";
+			if (tp == typeof(TimeSpan))
+				return "xs:string";
+
+			return defaultTp;
+        }
+		public static string GetXsdSimpleTypeExt(string targNsQual, Type tp, string defaultTp = "xs:string")
+        {
+			if (tp.IsEnum)
+				return targNsQual + GetXsdTypeNameByCSName(tp);
+			if (tp == typeof(bool))
+				return targNsQual + GetXsdCustomBoolTypeName();
+
+			return GetXsdStandardSimpleType(tp, defaultTp);
+        }
+
+
+		// Имя поля по имени свойства
+		public static string GetFieldNameByPropertyName(string propName)
+        {
+			return "_" + char.ToLower(propName[0]).ToString() + propName.Substring(1, propName.Length - 1);
+        }
+
+		public static string GetGetMethodByPropertyName(string propName)
+        {
+			return "Get" + propName + "Val";
+        }
+		public static string GetSetMethodByPropertyName(string propName)
+        {
+			return "Set" + propName + "Val";
+        }
+
+
+		public static string GetDeserializationFuncName(string typeName, bool isInh = false)
+        {
+			return "Deserialize" + typeName + "Elem" + (isInh ? "WithInh" : "");
+        }
+		public static string GetDeserializationFuncName(Type typeName, bool isInh = false)
+        {
+			return GetDeserializationFuncName(GenericToPlainTypeName(TypeHelper.GetTypeName(typeName)), isInh);
+        }
+    }
+
+
+	public class GenerationHelper
+    {
+
+		private static int _unqueId = 1;
+		// Генерация уникального имени
+		public static string GenerateRandomUniqName()
+		{
+			int id = _unqueId++;
+			return "n" + id.ToString();
+		}
+
+		// Ялвяется ли тип специализированным для обработки
+		// Сейчас это словарь, массив или список
+		public static bool IsSpecialProcessType(Type tp)
+		{
+			return tp.IsArray || 
+				(tp.IsGenericType && (tp.GetGenericTypeDefinition() == typeof(List<>) || tp.GetGenericTypeDefinition() == typeof(Dictionary<,>)));
+		}
+		
+		// Простой ли тип
+		public static bool IsSimpleType(Type tp)
+		{
+			return !tp.IsInterface && !(tp.IsClass && tp.IsAbstract) && !IsSpecialProcessType(tp);
+		}
+
+		// Сложный ли тип (требуется ли внутренняя его обработка)
+		public static bool IsComplexType(Type tp)
+        {
+			return tp.IsInterface || (tp.IsClass && tp.IsAbstract);
+        }
+
+				// Получает тип ообработки для данного типа
+		public static GenerationTypeKind GetGenerationTypeKind(Type tp)
+        {
+			if (IsSpecialProcessType(tp))
+				return GenerationTypeKind.SpecialProcessingType;
+			if (IsComplexType(tp))
+				return GenerationTypeKind.ComplexType;
+			if (IsSimpleType(tp))
+				return GenerationTypeKind.SimpleType;
+
+			return GenerationTypeKind.BadType;
+        }
+
+		
+		// Использовать для типа обработку, как для списка
+		public static bool IsTreatLikeList(Type tp)
+		{
+			return (tp.IsArray && tp.GetArrayRank() == 1) || (tp.IsGenericType && tp.GetGenericTypeDefinition() == typeof(List<>));
+		}
+		// Использовать для типа обработку, как для словаря
+		public static bool IsTreatLikeDictionary(Type tp)
+		{
+			return tp.IsGenericType && tp.GetGenericTypeDefinition() == typeof(Dictionary<,>);
+		}
+
+
+			// Получает информацию об особой обработке типа
+		public static GenerationTypeTreatLike GetGenerationTypeTreatLike(Type tp)
+        {
+			if (IsTreatLikeList(tp))
+				return GenerationTypeTreatLike.List;
+			if (IsTreatLikeDictionary(tp))
+				return GenerationTypeTreatLike.Dictionary;
+
+			return GenerationTypeTreatLike.NotSpecial;
+        }
+
+
+		// Получение типа элементов списка или массива
+		public static Type GetListElementType(Type tp)
+        {
+			if (tp.IsArray)
+				return tp.GetElementType();
+
+			if (tp.IsGenericType && tp.GetGenericTypeDefinition() == typeof(List<>))
+				return tp.GetGenericArguments()[0];
+
+			throw new Exception("bad type");
+        }
+
+		// Получение типа ключа словаря
+		public static Type GetDictionaryKeyType(Type tp)
+        {
+			if (tp.IsGenericType && tp.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+				return tp.GetGenericArguments()[0];
+
+			throw new Exception("bad type");
+        }
+				// Получение типа значения словаря
+		public static Type GetDictionaryValueType(Type tp)
+        {
+			if (tp.IsGenericType && tp.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+				return tp.GetGenericArguments()[1];
+
+			throw new Exception("bad type");
+        }
+
+
+		// Извлечение атрибута конфигурации из свойства
+		public static ConfigPropertyDescriptionAttribute GetCfgParamAttrib(PropertyInfo prop)
+		{
+			object[] attrib = prop.GetCustomAttributes(typeof(ConfigPropertyDescriptionAttribute), true);
+			ConfigPropertyDescriptionAttribute attribVal = null;
+			if (attrib == null || attrib.Length == 0)
+				return null;
+
+			attribVal = (ConfigPropertyDescriptionAttribute)attrib[0];	
+				
+			return attribVal;
+		}
+
+
+		// Корректировка стиля элементов
+		public static ConfigPropertyStyle FixStyle(ConfigPropertyStyle original, GenerationTypeKind typeKind)
+        {
+			if (original != ConfigPropertyStyle.Default)
+				return original;
+
+			if (typeKind == GenerationTypeKind.ComplexType)
+				return ConfigPropertyStyle.XmlElement;
+
+			if (typeKind == GenerationTypeKind.SimpleType)
+				return ConfigPropertyStyle.XmlAttribute;
+
+			if (typeKind == GenerationTypeKind.SpecialProcessingType)
+				return ConfigPropertyStyle.XmlElement;
+
+			throw new Exception("bad GenerationTypeKind");
+        }
+
+		// Подходящее ли свойство
+		public static bool IsGoodProperty(PropertyInfo prop)
+        {
+			if (prop.DeclaringType.IsInterface)
+				return true;
+
+			if (prop.DeclaringType.IsClass && prop.DeclaringType.IsAbstract)
+            {
+				if (prop.GetMethod != null && prop.GetMethod.IsAbstract &&
+					((prop.SetMethod != null && prop.SetMethod.IsAbstract) || prop.SetMethod == null))
+					return true;
+            }
+
+			return false;
+        }
+
+
+
+		// Извлечение атрибутов ConfigSubstituteTypeAttribute из типа
+		public static ConfigSubstituteTypeAttribute[] GetCfgSubstituteTypeAttrib(Type tp)
+		{
+			object[] attrib = tp.GetCustomAttributes(typeof(ConfigSubstituteTypeAttribute), false);
+			if (attrib == null || attrib.Length == 0)
+				return null;
+
+			int ownIndex = -1;
+			for (int i = 0; i < attrib.Length; i++)
+            {
+				if (((ConfigSubstituteTypeAttribute)attrib[i]).SubType == tp)
+                {
+					ownIndex = i;
+					break;
+                }
+            }
+
+			if (ownIndex < 0)
+				return attrib.Cast<ConfigSubstituteTypeAttribute>().ToArray();
+
+			ConfigSubstituteTypeAttribute[] res = new ConfigSubstituteTypeAttribute[attrib.Length];
+			res[0] = (ConfigSubstituteTypeAttribute)attrib[ownIndex];
+
+			int wrtIndex = 1;
+			for (int i = 0; i < attrib.Length; i++)
+            {
+				if (i != ownIndex)
+                {
+					res[wrtIndex] = (ConfigSubstituteTypeAttribute)attrib[i];
+					wrtIndex++;
+                }
+            }
+			return res;
+		}
+		// Извлечение атрибутов ConfigSubstituteTypeAttribute из типа
+		public static ConfigSubstituteTypeAttribute[] GetCfgSubstituteTypeAttribInit(Type tp)
+		{
+			var attrib = GetCfgSubstituteTypeAttrib(tp);
+			if (attrib == null || attrib.Length == 0)
+				return new ConfigSubstituteTypeAttribute[1] { new ConfigSubstituteTypeAttribute(tp) };
+
+			return attrib;
+		}
+
+		// Извлечение атрибута ConfigSubstituteTypeAttribute для самого типа
+		public static ConfigSubstituteTypeAttribute GetOwnCfgSubstituteTypeAttrib(Type tp, ConfigSubstituteTypeAttribute[] arr)
+        {
+			if (arr == null)
+				return null;
+
+			return arr.FirstOrDefault(o => o.SubType == tp);
+        }
+		// Извлечение атрибута ConfigSubstituteTypeAttribute для самого типа
+		public static ConfigSubstituteTypeAttribute GetOwnCfgSubstituteTypeAttrib(Type tp)
+        {
+			return GetOwnCfgSubstituteTypeAttrib(tp, GetCfgSubstituteTypeAttrib(tp));
+        }
+
+
+		// Получение ограничения на коллекцию
+		public static CollectionRestrictionAttribute GetCollectionRestrictionAttrib(PropertyInfo prop)
+        {
+			return Attribute.GetCustomAttribute(prop, typeof(CollectionRestrictionAttribute)) as CollectionRestrictionAttribute;
+        }
+
+		// Получение аттрибута встраивания внутренностей
+		public static DefaultInternalElementAttribute GetDefaultInternalsAttrib(Type tp)
+        {
+			return Attribute.GetCustomAttribute(tp, typeof(DefaultInternalElementAttribute)) as DefaultInternalElementAttribute;
+        }
+
+
+		// Получение полных данных по свойству.
+		public static PropertyGenerationInfo ExtractDataForGoodProp(PropertyInfo prop)
+        {
+			PropertyGenerationInfo res = new PropertyGenerationInfo();
+
+			res.Prop = prop;
+			res.Attrib = GetCfgParamAttrib(prop);
+			res.IsGoodProperty = IsGoodProperty(prop);
+			res.TypeKind = GetGenerationTypeKind(prop.PropertyType);
+			if (res.Attrib != null)
+				res.FixedStyle = FixStyle(res.Attrib.Style, res.TypeKind);
+			else
+				res.FixedStyle = ConfigPropertyStyle.Default;
+			res.TreatLike = GetGenerationTypeTreatLike(prop.PropertyType);
+			res.PropTypeInfo = ExtractDataForType(prop.PropertyType);
+			res.CollectionRestriction = GetCollectionRestrictionAttrib(prop);
+
+			return res;
+        }
+
+
+
+				// Получение полных данных по типу.
+		public static GenerationTypeInfo ExtractDataForType(Type tp)
+        {
+			GenerationTypeInfo res = new GenerationTypeInfo();
+
+			res.Type = tp;
+			res.TypeKind = GetGenerationTypeKind(tp);
+			res.TypeName = TypeHelper.GetTypeName(tp);
+
+			ConfigSubstituteTypeAttribute[] declSubst = GetCfgSubstituteTypeAttrib(tp) ?? new ConfigSubstituteTypeAttribute[0];	
+
+			res.DeclaredTypeSubstitution = declSubst;
+			res.OwnTypeSubstitution = GetOwnCfgSubstituteTypeAttrib(tp, declSubst);
+			
+			res.InheritanceTypeSubstitution = declSubst;
+			if (res.InheritanceTypeSubstitution.Length == 0)
+				res.InheritanceTypeSubstitution = new ConfigSubstituteTypeAttribute[1] { new ConfigSubstituteTypeAttribute(tp) };
+
+			res.DefaultInternals = GetDefaultInternalsAttrib(tp);
+
+			return res;
+        }
+    }
+
+
+	public class PropertyValidator
+    {
+		public static bool IsPropertyMallformed(PropertyInfo prop)
+        {
+			return IsPropertyMallformed(GenerationHelper.ExtractDataForGoodProp(prop));
+        }
+
+		public static bool IsPropertyMallformed(PropertyGenerationInfo propGInf)
+        {
+			if (propGInf.Prop == null)
+				return true;
+
+			if (propGInf.Attrib == null)
+				return false;
+
+			if (!propGInf.IsGoodProperty)
+				return true;
+
+			if (propGInf.TypeKind == GenerationTypeKind.BadType)
+				return true;
+
+			if (propGInf.Attrib.AllowInheritance && propGInf.FixedStyle != ConfigPropertyStyle.XmlElementInjectedType)
+				return true;
+
+			if (propGInf.TreatLike == GenerationTypeTreatLike.Dictionary)
+				if (!GenerationHelper.IsSimpleType(GenerationHelper.GetDictionaryKeyType(propGInf.Prop.PropertyType)))
+					return true;
+
+			if (propGInf.PropTypeInfo == null)
+				return true;
+
+			if (propGInf.Prop.PropertyType != propGInf.PropTypeInfo.Type)
+				return true;
+
+			if (propGInf.PropTypeInfo.IsMallformed)
+				return true;
+
+
+			if (propGInf.TypeKind != GenerationTypeKind.SpecialProcessingType ||
+				(propGInf.TreatLike != GenerationTypeTreatLike.Dictionary && 
+				 propGInf.TreatLike != GenerationTypeTreatLike.List))
+            {
+				if (propGInf.CollectionRestriction != null)
+					return true;
+            }
+
+			if (propGInf.CollectionRestriction != null)
+            {
+				if (propGInf.CollectionRestriction.MinElementCount > propGInf.CollectionRestriction.MaxElementCount)
+					return true;
+            }
+
+			switch (propGInf.FixedStyle)
+            {
+				case ConfigPropertyStyle.Default:
+					return true;
+				case ConfigPropertyStyle.Dictionary:
+					return propGInf.TypeKind != GenerationTypeKind.SimpleType;
+				case ConfigPropertyStyle.XmlAttribute:
+					return propGInf.TypeKind != GenerationTypeKind.SimpleType;
+				case ConfigPropertyStyle.XmlElement:
+					return false;
+				case ConfigPropertyStyle.XmlElementInjectedType:
+					return propGInf.TypeKind == GenerationTypeKind.SimpleType;
+            }
+
+			return true;
+        }
+
+
+			// Правильно ли составлен список наследования
+		public static bool IsCfgSubstituteSeqMalformed(Type tp, ConfigSubstituteTypeAttribute[] attribs)
+        {
+			if (tp.IsInterface)
+				return attribs.Any(o => !(o.SubType.GetInterfaces().Contains(tp) || o.SubType == tp));
+
+			return attribs.Any(o => !(o.SubType.IsSubclassOf(tp) || o.SubType == tp));
+        }
+
+
+		public static bool IsDefaultInternalsMalformed(Type tp, DefaultInternalElementAttribute attrib)
+        {
+			PropertyInfo fndProp = null;
+			int elemPropCount = 0;
+
+			foreach (var prop in TypeHelper.GetPropertiesCascaded(tp))
+            {
+				var cfgParam = GenerationHelper.GetCfgParamAttrib(prop);
+				if (cfgParam == null)
+					continue;
+
+				var genTpKind = GenerationHelper.GetGenerationTypeKind(prop.PropertyType);
+				var fixedStyle = GenerationHelper.FixStyle(cfgParam.Style, genTpKind);
+
+				if (fixedStyle != ConfigPropertyStyle.XmlAttribute)
+                {
+					elemPropCount++;
+                }
+
+				if (elemPropCount > 1)
+					return true;
+
+				if (prop.Name == attrib.PropertyName)
+                {
+					fndProp = prop;
+					if (fixedStyle != ConfigPropertyStyle.XmlElement && 
+						fixedStyle != ConfigPropertyStyle.XmlElementInjectedType)
+                    {
+						return true;
+                    }
+
+					if (genTpKind == GenerationTypeKind.BadType ||
+						(genTpKind != GenerationTypeKind.ComplexType &&
+						 genTpKind != GenerationTypeKind.SpecialProcessingType))
+                    {
+						return true;
+                    }
+                }
+            }
+
+			if (fndProp == null)
+				return true;
+
+			return false;
+        }
+
+
+		public static bool IsTypeMalformed(GenerationTypeInfo tpInf)
+        {
+			if (tpInf.Type == null)
+				return true;
+			
+			if (tpInf.TypeName == null)
+				return true;
+
+			if (tpInf.TypeKind == GenerationTypeKind.BadType)
+				return true;
+
+			if (tpInf.DeclaredTypeSubstitution == null)
+				return true;
+
+			if (IsCfgSubstituteSeqMalformed(tpInf.Type, tpInf.DeclaredTypeSubstitution))
+				return true;
+
+			if (tpInf.DefaultInternals != null)
+            {
+				if (tpInf.DefaultInternals.PropertyName == null)
+					return true;
+
+				if (IsDefaultInternalsMalformed(tpInf.Type, tpInf.DefaultInternals))
+					return true;
+            }
+
+			return false;
+        }
+    }
+
+
+
+	//====================================================
+
+
+	public class AppConfigGenerationParams
+    {
+		public string NamespaceName { get; set; }
+		public string AssemblyName { get; set; }
+		public bool GenerateInterface { get; set; }
+		public bool GenerateAppConfigLoader { get; set; }
+		public string SectionName { get; set; }
+    }
+
+
+
+	//====================================================
+
+	public enum GenerationTypeKind
+    {
+		BadType,
+		SimpleType,
+		ComplexType,
+		SpecialProcessingType
+    }
+
+	public enum GenerationTypeTreatLike
+    {
+		NotSpecial,
+		List,
+		Dictionary
+    }
+
+
+	public class PropertyGenerationInfo
+    {
+		public PropertyGenerationInfo() {}
+
+		public PropertyInfo Prop {get; set;}
+		public GenerationTypeInfo PropTypeInfo {get;set;}
+		public ConfigPropertyDescriptionAttribute Attrib {get;set;}
+		public GenerationTypeKind TypeKind {get;set;}
+		public GenerationTypeTreatLike TreatLike {get;set;}
+		public ConfigPropertyStyle FixedStyle {get;set;}
+		public ConfigPropertyStyle OriginalStyle {get {return Attrib.Style;}}
+		public bool IsGoodProperty {get; set;}
+		public CollectionRestrictionAttribute CollectionRestriction {get;set;}
+
+		public bool CanBeUsed {get {return Attrib != null && !IsMallformed;}}
+
+		private bool? _isMallformed;
+		public bool IsMallformed 
+		{
+			get 
+			{
+				if (!_isMallformed.HasValue)
+					_isMallformed = PropertyValidator.IsPropertyMallformed(this);
+				return _isMallformed.Value || PropTypeInfo.IsMallformed;
+			}
+		}
+
+
+
+		public string WhatsWrong
+        {
+			get 
+            {
+				if (!IsMallformed)
+					return "OK";
+
+				if (PropTypeInfo.IsMallformed)
+					return string.Format("Type malformed: '{0}'", this.PropTypeInfo.Type.Name);
+
+				return string.Format("Bad property '{0}' on type '{1}'", this.Prop.Name, this.Prop.DeclaringType.Name);
+            }
+        }
+
+		public string GetAnnotation()
+        {
+			var res = string.Format("{0}, Type = {1}, IsRequired = {2}", Prop.Name, TypeHelper.GetTypeName(Prop.PropertyType), Attrib.IsRequired);
+			if (Attrib.DefaultValue != null)
+				res += ", Default = " + Attrib.DefaultValue;
+
+			return res;
+        }
+    }
+
+
+	public class GenerationTypeInfo
+    {
+		public GenerationTypeInfo() {}
+
+		public Type Type {get; set;}
+		public string TypeName {get; set;}
+		public GenerationTypeKind TypeKind {get;set;}
+
+		public ConfigSubstituteTypeAttribute OwnTypeSubstitution {get;set;}
+		public string OverrideTypeName
+        {
+			get
+            {
+				if (OwnTypeSubstitution == null)
+					return null;
+				return OwnTypeSubstitution.OverrideTypeName;
+            }
+        }
+
+		public ConfigSubstituteTypeAttribute[] DeclaredTypeSubstitution {get;set;}
+		public ConfigSubstituteTypeAttribute[] InheritanceTypeSubstitution {get;set;}
+
+		public DefaultInternalElementAttribute DefaultInternals {get;set;}
+
+		private bool? _isMallformed;
+		public bool IsMallformed 
+		{
+			get 
+			{
+				if (!_isMallformed.HasValue)
+					_isMallformed = PropertyValidator.IsTypeMalformed(this);
+				return _isMallformed.Value;
+			}
+		}
+    }
+
+
+
+	//====================================================
+
+    /// <summary>
+    /// Стиль элемента в конфиг файле
+    /// </summary>
+    public enum ConfigPropertyStyle
+    {
+        /// <summary>
+        /// Стиль по умолчанию. Простые свойства записываются как xml атрибуты. 
+        /// Сложные - как xml элементы.
+        /// </summary>
+        Default,
+        /// <summary>
+        /// Свойство записывается как атрибут XML 
+        /// Имеет смысл смысл только для свойств простых типов. 
+        /// Для коллекций недопустим.
+        /// </summary>
+        XmlAttribute,
+        /// <summary>
+        /// Свойство записывается как отдельный элемент XML. Значение задаётся в его атрибуте 'value'.
+        /// Применимо только для свойств простых типов, интерфейсных типов и типов коллекций. 
+        /// Желательно задавать его явно для свойств коллекций.
+        /// </summary>
+        XmlElement,
+        /// <summary>
+        /// Свойство записывается как отдельный элемент XML. Значение задаётся внутренним элементом.
+        /// Имя внутреннего элемента определяется по имени типа этого элемента.
+        /// Для простых типов недопустимо. Для интерфейсов выполняет их вложение.
+        /// Для коллекций заменяет стандартный 'add' на имя типа.
+        /// </summary>
+        XmlElementInjectedType,
+        /// <summary>
+        /// Свойство записывается в словарном стиле (элемент add с атрибутами key и value).
+        /// Имеет смысл только для свойств простых типов. 
+        /// Для коллекций недопустим.
+        /// </summary>
+        Dictionary
+    }
+
+    /// <summary>
+    /// Атрибут для поментки свойств интерфейсов, которые будут загружаться из конфига
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
+    public class ConfigPropertyDescriptionAttribute : Attribute
+    {
+        private ConfigPropertyStyle _cfgStyle = ConfigPropertyStyle.Default;
+        private bool _isRequired = true;
+
+        /// <summary>
+        /// Конструктор ConfigPropertyDescriptionAttribute
+        /// </summary>
+        public ConfigPropertyDescriptionAttribute() { }
+
+        /// <summary>
+        /// Конструктор ConfigPropertyDescriptionAttribute
+        /// </summary>
+        /// <param name="style">Стиль элемента</param>
+        public ConfigPropertyDescriptionAttribute(ConfigPropertyStyle style) 
+        {
+            Style = style;
+        }
+
+        /// <summary>
+        /// Стиль элемента в файле конфигурации
+        /// </summary>
+        public ConfigPropertyStyle Style
+        {
+            get { return _cfgStyle; }
+            private set { _cfgStyle = value; }
+        }
+
+        /// <summary>
+        /// Имя элемента в файле конфигурации.
+        /// При null используется имя свойства
+        /// </summary>
+        public string OverridedName
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Значение по-умолчанию. 
+        /// Устанавливается, если в конфиге оно не задано.
+        /// Для его использования не забудьте указать IsRequired = false.
+        /// </summary>
+        public string DefaultValue
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Обязательно ли наличие элемента (по умолчанию true).
+        /// При отсутствии такого элемента в файле конфигурации выбрасывается исключение.
+        /// </summary>
+        public bool IsRequired
+        {
+            get { return _isRequired; }
+            set { _isRequired = value; }
+        }
+
+        /// <summary>
+        /// Разрешено ли для данного свойства разрешение наследников.
+        /// Все наследники должны быть указаны явно с помощью ConfigPropertyInheritance.
+        /// </summary>
+        public bool AllowInheritance
+        {
+            get;
+            set;
+        }
+    }
+
+
+
+
+    /// <summary>
+    /// Атрибут, определяющий допустимые для данного типа подтипы
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=true)]
+    public class ConfigSubstituteTypeAttribute: Attribute
+    {
+        /// <summary>
+        /// Конструктор ConfigSubstituteTypeAttribute
+        /// </summary>
+        /// <param name="subType">Допустимый подтип</param>
+        public ConfigSubstituteTypeAttribute(Type subType)
+        {
+            SubType = subType;
+            OverrideTypeName = null;
+        }
+
+        /// <summary>
+        /// Допустимый подтип
+        /// </summary>
+        public Type SubType
+        {
+            get;
+            private set;
+        }
+        /// <summary>
+        /// Имя типа, используемое при объявлении в конфиге.
+        /// Если null, то используется SubType.Name
+        /// </summary>
+        public string OverrideTypeName
+        {
+            get;
+            set;
+        }
+    }
+
+
+
+	[AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
+    public class CollectionRestrictionAttribute: Attribute
+    {
+        private uint _minElemCount = 0;
+        private uint _maxElemCount = uint.MaxValue;
+
+        /// <summary>
+        /// Минимальное количество элементов в коллекции
+        /// </summary>
+        public uint MinElementCount
+        {
+            get { return _minElemCount; }
+            set { _minElemCount = value; }
+        }
+
+        /// <summary>
+        /// Максимальное количество элементов в коллекции
+        /// </summary>
+        public uint MaxElementCount
+        {
+            get { return _maxElemCount; }
+            set { _maxElemCount = value; }
+        }
+    }
+
+
+
+	/// <summary>
+    /// Атрибут указывает, что класс имеет лишь одно свойство, записываемое XML элементом.
+    /// Соответственно, данный элемент будет встроен по умолчанию
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple = false)]
+    public class DefaultInternalElementAttribute : Attribute
+    {
+        public DefaultInternalElementAttribute(string propertyName)
+        {
+            PropertyName = propertyName;
+        }
+
+        /// <summary>
+        /// Имя свойства единственного XML Element
+        /// </summary>
+        public string PropertyName
+        {
+            get;
+            private set;
+        }
+    }
+
+#>

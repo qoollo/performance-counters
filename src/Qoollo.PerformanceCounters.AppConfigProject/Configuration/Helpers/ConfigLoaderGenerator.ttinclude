@@ -1,0 +1,1771 @@
+﻿<#
+	//@ template  debug="true" language="C#" 
+#>
+<#
+	//@ output extension=".txt" 
+#>
+<#
+	//@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="System.Core" 
+#>
+
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #> 
+<#@ import namespace="System.Reflection" #>
+
+
+<#
+	//@ includeForIntellisenseOnly processor="tangibleT4Editor" file="ConfigCommonData.ttinclude" 
+#>
+
+<#
+
+
+#>
+
+
+<#+
+
+	public void GenerateConfigLoader(Type tp, AppConfigGenerationParams parameters)
+    {
+		#>
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Diagnostics.Contracts;
+using System.Configuration;
+
+
+namespace <#= parameters.NamespaceName #>
+{
+
+<#+
+		this.PushIndent(Indent);
+
+		WriteSampleSectionGroupCode(tp, parameters.NamespaceName, parameters.SectionName);
+		this.WriteLine("");
+
+		WriteSampleConfigLoaderCode(tp, parameters.NamespaceName, parameters.SectionName, !parameters.GenerateAppConfigLoader);
+		this.WriteLine("");
+
+		if (parameters.GenerateInterface)
+        {
+			WriteAllBaseTypes(tp);
+			this.WriteLine("");
+        }
+
+		this.WriteLine("// ============================");
+		this.WriteLine("");
+
+		WriteAllTypeImplementation(tp);
+		this.WriteLine("");
+
+		this.WriteLine("// ============================");
+		this.WriteLine("");
+
+		WriteCustomSectionHandler(tp, parameters.NamespaceName, parameters.SectionName);
+		this.WriteLine("");
+
+
+		this.PopIndent();
+
+		#>
+
+}
+<#+
+    }
+
+
+
+
+
+
+	private void WriteSampleSectionGroupCode(Type intType, string Namespace, string sectionName)
+    {
+		string ConfigSectionTypeName = NameResolveHelper.GetConfigClassNameByIntName(intType);
+
+		#>
+/* **** Sample section group *****
+
+public class SampleSectionGroup: ConfigurationSectionGroup
+{
+	public <#= ConfigSectionTypeName #> <#= sectionName #>
+	{
+		get
+		{
+			return this.Sections["<#= sectionName #>"] as <#= ConfigSectionTypeName #>;
+		}
+	}
+
+	public <#= TypeHelper.GetTypeName(intType) #> Load<#= sectionName #>()
+	{
+		return this.<#= sectionName #>.ExtractConfigData();
+	}
+}
+
+*/
+
+
+
+		<#+
+
+
+    }
+
+
+	// =====================================
+
+	private void WriteSampleConfigLoaderCode(Type intType, string Namespace, string sectionName, bool isCommented)
+    {
+		string ConfigSectionTypeName = NameResolveHelper.GetConfigClassNameByIntName(intType);
+
+		string intName = NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(intType));
+		if (intType.IsInterface && intName.StartsWith("I"))
+			intName = intName.Substring(1, intName.Length - 1);
+			
+
+		#>
+/* **** Sample config loader ***** <#= isCommented ? "" : "*/" #>
+
+public static class <#= intName #>AppConfigLoader
+{
+    public const string DefaultSectionName = "<#= sectionName #>";
+
+    public static <#= TypeHelper.GetTypeName(intType) #> Load(string sectionGroupName, string sectionName)
+    {
+        string fullSectionName = sectionName;
+        if (sectionGroupName != null)
+            fullSectionName = sectionGroupName + "/" + sectionName;
+
+        var cfg = (<#= ConfigSectionTypeName #>)ConfigurationManager.GetSection(fullSectionName);
+        return cfg.ExtractConfigData();
+    }
+    public static <#= TypeHelper.GetTypeName(intType) #> Load(string sectionName)
+    {
+        return Load(null, sectionName);
+    }
+    public static <#= TypeHelper.GetTypeName(intType) #> Load()
+    {
+        return Load(DefaultSectionName);
+    }
+}
+
+<#= isCommented ? "*/" : "" #>
+
+
+
+		<#+
+
+
+    }
+
+
+	// =====================================
+
+
+
+
+	private void WriteAllBaseTypes(Type intType)
+    {
+		List<Type> allTps = GenerationTypeCollector.CollectAllTypesToImplWithEnums(intType);
+
+		foreach (var tp in allTps.Select(o => o.IsGenericType ? o.GetGenericTypeDefinition() : o).Distinct())
+        {
+			WriteTypeCode(tp);
+			this.WriteLine("");
+        }
+
+    }
+
+
+	private void WriteTypeCode(Type intType)
+    {
+		if (intType.IsEnum)
+        {
+			WriteEnumCode(intType);
+			return;
+        }
+
+		//Type intType;
+		if (intType.IsGenericType)
+			intType = intType.GetGenericTypeDefinition();
+
+		if (intType.IsInterface)
+        {
+			this.Write("public interface " + TypeHelper.GetTypeName(intType));
+        }
+		else if (intType.IsClass)
+        {
+			if (intType.IsAbstract)
+            {
+				this.Write("public abstract class " + TypeHelper.GetTypeName(intType));
+            }
+			else
+            {
+				this.Write("public class " + TypeHelper.GetTypeName(intType));
+            }
+        }
+		else
+        {
+			throw new Exception("bad type");
+        }
+
+		List<Type> baseTypes = new List<Type>(10);
+
+		if (intType.IsClass && intType.BaseType != null && intType.BaseType != typeof(object))
+        {
+			baseTypes.Add(intType.BaseType);
+        }
+		baseTypes.AddRange(intType.GetInterfaces());
+
+		if (baseTypes.Count > 0)
+        {
+			this.Write(": " + TypeHelper.GetTypeName(baseTypes[0]));
+			for (int i = 1; i < baseTypes.Count; i++)
+				this.Write(", " + TypeHelper.GetTypeName(baseTypes[i]));
+
+        }
+		this.WriteLine("");
+		this.WriteLine("{");
+		this.PushIndent(Indent);
+
+		foreach (var prop in intType.GetProperties())
+		{
+			if (intType.IsClass)
+            {
+				this.Write("public ");
+				if ((prop.CanRead && prop.GetMethod.IsAbstract) || (prop.CanWrite && prop.SetMethod.IsAbstract))
+					this.Write("abstract ");
+            }
+
+			this.Write(TypeHelper.GetTypeName(prop.PropertyType) + " " + prop.Name + " { ");
+			if (prop.CanRead)
+            {
+				if (intType.IsClass)
+                {
+					if (prop.GetMethod.IsPrivate)
+						this.Write("private ");
+					else if (!prop.GetMethod.IsPublic)
+						this.Write("protected ");
+                }
+				this.Write("get; ");
+            }
+			if (prop.CanWrite)
+            {
+				if (intType.IsClass)
+                {
+					if (prop.SetMethod.IsPrivate)
+						this.Write("private ");
+					else if (!prop.SetMethod.IsPublic)
+						this.Write("protected ");
+                }
+				this.Write("set; ");
+            }
+			this.WriteLine("}");
+		}
+
+		this.PopIndent();
+		this.WriteLine("}");
+
+    }
+
+
+
+	private void WriteEnumCode(Type enumTp)
+    {
+		if (!enumTp.IsEnum)
+			throw new Exception("Not enum type");
+
+		//Type enumTp;
+
+		this.WriteLine("public enum " + enumTp.Name);
+		this.WriteLine("{");
+		this.PushIndent(Indent);
+
+		foreach (var elem in Enum.GetValues(enumTp))
+        {
+			this.WriteLine(elem.ToString() + " = " + Convert.ToInt32(elem) + ",");
+        }
+
+
+		this.PopIndent();
+		this.WriteLine("}");
+    }
+
+
+	// ==============================================================
+
+
+	private void WriteAllTypeImplementation(Type intType)
+    {
+		List<Type> allTps = GenerationTypeCollector.CollectAllTypesToImpl(intType);
+
+		foreach (var tp in allTps.Select(o => o.IsGenericType ? o.GetGenericTypeDefinition() : o).Distinct())
+        {
+			WriteTypeImplementation(tp);
+			this.WriteLine("");
+        }
+
+    }
+
+
+	private void WriteTypeImplementation(Type intType)
+    {
+		//Type intType;
+		if (intType.IsGenericType)
+			intType = intType.GetGenericTypeDefinition();
+
+		if (!intType.IsInterface && !intType.IsClass)
+		{
+			throw new Exception("bad type");
+        }
+
+		this.WriteLine("internal class " + NameResolveHelper.GetImplementClassNameByIntName(intType) + " : " + TypeHelper.GetTypeName(intType));
+		this.WriteLine("{");
+		this.PushIndent(Indent);
+
+		WriteTypeImplementationConstructor(intType);
+		this.WriteLine("");
+
+		WriteTypeImplementationProperties(intType);
+		this.WriteLine("");
+
+		WriteTypeImplementationCopyCode(intType);
+		this.WriteLine("");
+
+		WriteTypeImplementationCopyWithInheritanceCode(intType);
+
+		this.PopIndent();
+		this.WriteLine("}");
+
+    }
+
+	private void WriteTypeImplementationProperties(Type intType)
+    {
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType))
+		{
+			if (intType.IsClass)
+            {
+				if (!((prop.CanRead && prop.GetMethod.IsAbstract) || (prop.CanWrite && prop.SetMethod.IsAbstract)))
+					continue;
+            }
+
+			this.WriteLine("private " + TypeHelper.GetTypeName(prop.PropertyType) + " " + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + ";");
+			
+			this.WriteLine("public " + TypeHelper.GetTypeName(prop.PropertyType) + " " + NameResolveHelper.GetGetMethodByPropertyName(prop.Name) + "()");
+			this.WriteLine("{");
+			this.PushIndent(Indent);
+			this.WriteLine("return " + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + ";");
+			this.PopIndent();
+			this.WriteLine("}");
+
+			this.WriteLine("public void " + NameResolveHelper.GetSetMethodByPropertyName(prop.Name) + "(" + TypeHelper.GetTypeName(prop.PropertyType) + " value)");
+			this.WriteLine("{");
+			this.PushIndent(Indent);
+			this.WriteLine(NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = value;");
+			this.PopIndent();
+			this.WriteLine("}");
+
+			if (intType.IsClass)
+            {
+				this.Write("public override ");
+            }
+
+			this.Write(TypeHelper.GetTypeName(prop.PropertyType) + " ");
+
+			if (intType.IsInterface)
+				this.Write(TypeHelper.GetTypeName(prop.DeclaringType) + ".");
+
+			this.WriteLine(prop.Name);
+			this.WriteLine("{");
+
+			this.PushIndent(Indent);
+
+			if (prop.CanRead)
+            {
+				if (intType.IsClass)
+                {
+					if (prop.GetMethod.IsPrivate)
+						this.Write("private ");
+					else if (!prop.GetMethod.IsPublic)
+						this.Write("protected ");
+                }
+				this.WriteLine("get { return " + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + "; }");
+            }
+			if (prop.CanWrite)
+            {
+				if (intType.IsClass)
+                {
+					if (prop.SetMethod.IsPrivate)
+						this.Write("private ");
+					else if (!prop.SetMethod.IsPublic)
+						this.Write("protected ");
+                }
+				this.WriteLine("set { " + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = value; }");
+            }
+			this.PopIndent();
+			this.WriteLine("}");
+			this.WriteLine("");
+		}
+    }
+
+	private void WriteTypeImplementationConstructor(Type intType)
+    {
+		//Type intType;
+
+		this.WriteLine("public " + NameResolveHelper.GetDefaultConstructorName(NameResolveHelper.GetImplementClassNameByIntName(intType)) + "()");
+		this.WriteLine("{");
+		this.PushIndent(Indent);
+
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType))
+		{
+			//PropertyInfo prop;
+			if (intType.IsClass)
+            {
+				if (!((prop.CanRead && prop.GetMethod.IsAbstract) || (prop.CanWrite && prop.SetMethod.IsAbstract)))
+					continue;
+			}
+
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null)
+				continue;
+
+			if (attribVal.IsMallformed)
+				throw new Exception("bad property " + prop.Name);
+
+			if (!attribVal.CanBeUsed)
+				continue;
+
+			if (attribVal.TypeKind == GenerationTypeKind.SimpleType)
+            {
+				if (attribVal.Attrib.DefaultValue != null)
+                {
+					if (prop.PropertyType == typeof(string))
+						this.WriteLine("this." + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = \"" + attribVal.Attrib.DefaultValue + "\";");
+					else if (prop.PropertyType == typeof(char))
+						this.WriteLine("this." + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = '" + attribVal.Attrib.DefaultValue + "';");
+					else if (prop.PropertyType.IsEnum)
+						this.WriteLine("this." + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = " + TypeHelper.GetTypeName(prop.PropertyType) + "." + attribVal.Attrib.DefaultValue + ";");
+					else
+						this.WriteLine("this." + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = " + attribVal.Attrib.DefaultValue + ";");
+                }
+            }
+			else if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+            {
+				if (attribVal.Attrib.IsRequired)
+					this.WriteLine("this." + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = new " + NameResolveHelper.GetImplementClassNameByIntName(prop.PropertyType) + "();");
+            }
+			else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+            {
+				if (attribVal.TreatLike == GenerationTypeTreatLike.List)
+                {
+					if (prop.PropertyType.IsArray)
+						this.WriteLine("this." + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = new " + TypeHelper.GetTypeName(GenerationHelper.GetListElementType(prop.PropertyType)) + "[0];");
+					else
+						this.WriteLine("this." + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = new " + TypeHelper.GetTypeName(prop.PropertyType) + "();");
+                }
+				else if (attribVal.TreatLike == GenerationTypeTreatLike.Dictionary)
+                {
+					this.WriteLine("this." + NameResolveHelper.GetFieldNameByPropertyName(prop.Name) + " = new " + TypeHelper.GetTypeName(prop.PropertyType) + "();");
+                }
+				else
+                {
+					throw new Exception("bad TreatLike");
+                }
+            }
+			else
+            {
+				throw new Exception("bad TypeKind");
+            }
+		}
+
+		this.PopIndent();
+		this.WriteLine("}");
+    }
+
+
+	private void WriteTypeImplementationCopyCode(Type intType)
+    {
+		//Type intType;
+#>
+public <#= NameResolveHelper.GetImplementClassNameByIntName(intType) #> Copy()
+{
+	var res = new <#= NameResolveHelper.GetImplementClassNameByIntName(intType) #>();
+
+<#+
+		this.PushIndent(Indent);
+
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType))
+		{
+			//PropertyInfo prop;
+			bool accessByProp = false;
+
+			if (intType.IsClass)
+            {
+				if (!((prop.CanRead && prop.GetMethod.IsAbstract) || (prop.CanWrite && prop.SetMethod.IsAbstract)))
+                {
+					accessByProp = true;
+					if (!(prop.CanRead && prop.CanWrite))
+						continue;
+                }
+			}
+
+			if (accessByProp)
+            {
+				this.WriteLine("res." + prop.Name + " = this." + prop.Name + ";");
+				continue;
+            }
+
+
+			string accessorName = NameResolveHelper.GetFieldNameByPropertyName(prop.Name);
+
+			var TypeKind = GenerationHelper.GetGenerationTypeKind(prop.PropertyType);
+			var TreatLike = GenerationHelper.GetGenerationTypeTreatLike(prop.PropertyType);
+
+			if (TypeKind == GenerationTypeKind.SimpleType)
+            {
+				this.WriteLine("res." + accessorName + " = this." + accessorName + ";");
+            }
+			else if (TypeKind == GenerationTypeKind.ComplexType)
+            {
+				this.WriteLine("res." + accessorName + " = " + NameResolveHelper.GetImplementClassNameByIntName(prop.PropertyType) + ".CopyInh(this." + accessorName + ");");
+            }
+			else if (TypeKind == GenerationTypeKind.SpecialProcessingType)
+            {
+				this.WriteLine("if (this." + accessorName + " == null)");
+				this.WriteLine(Indent + "res." + accessorName + " = null;");
+				this.WriteLine("else");
+				this.PushIndent(Indent);
+				if (TreatLike == GenerationTypeTreatLike.List)
+                {
+					this.Write("res." + accessorName + " = " + accessorName);
+					if (GenerationHelper.IsComplexType(GenerationHelper.GetListElementType(prop.PropertyType)))
+						this.Write(".Select(o => " + NameResolveHelper.GetImplementClassNameByIntName(GenerationHelper.GetListElementType(prop.PropertyType)) + ".CopyInh(o))");
+
+					if (prop.PropertyType.IsArray)
+						this.WriteLine(".ToArray();");
+					else
+						this.WriteLine(".ToList();");
+                }
+				else if (TreatLike == GenerationTypeTreatLike.Dictionary)
+                {
+					if (GenerationHelper.IsComplexType(GenerationHelper.GetDictionaryValueType(prop.PropertyType)))
+						this.WriteLine("res." + accessorName + " = " + accessorName + ".ToDictionary(o => o.Key, o => " + NameResolveHelper.GetImplementClassNameByIntName(GenerationHelper.GetDictionaryValueType(prop.PropertyType)) + ".CopyInh(o.Value));");
+					else
+						this.WriteLine("res." + accessorName + " = " + accessorName + ".ToDictionary(o => o.Key, o => o.Value);");
+                }
+				else
+                {
+					throw new Exception("bad TreatLike");
+                }
+				this.WriteLine("");
+				this.PopIndent();
+            }
+			else
+            {
+				throw new Exception("bad TypeKind");
+            }
+		}
+
+		this.WriteLine("");
+		this.WriteLine("return res;");
+		this.PopIndent();
+		this.WriteLine("}");
+
+    }
+
+
+	private void WriteTypeImplementationCopyWithInheritanceCode(Type intType)
+    {
+		//Type intType;
+#>
+public static <#= TypeHelper.GetTypeName(intType) #> CopyInh(<#= TypeHelper.GetTypeName(intType) #> src)
+{
+	if (src == null)
+		return null;
+
+	if (src.GetType() == typeof(<#= NameResolveHelper.GetImplementClassNameByIntName(intType) #>))
+		return ((<#= NameResolveHelper.GetImplementClassNameByIntName(intType) #>)src).Copy();
+<#+
+
+		var iheritTypes = GenerationHelper.GetCfgSubstituteTypeAttribInit(intType);
+
+		foreach (var lTp in iheritTypes)
+        {
+#>
+	if (src.GetType() == typeof(<#= NameResolveHelper.GetImplementClassNameByIntName(lTp.SubType) #>))
+		return ((<#= NameResolveHelper.GetImplementClassNameByIntName(lTp.SubType) #>)src).Copy();
+<#+
+        }
+
+#>
+
+	throw new Exception("Unknown type: " + src.GetType().ToString());
+}
+<#+
+    }
+
+	
+	// ==============================================================
+
+
+
+	private void WriteCustomSectionHandler(Type intType, string Namespace, string sectionName)
+    {
+		string ConfigSectionTypeName = NameResolveHelper.GetConfigClassNameByIntName(intType);
+#>
+public class <#= ConfigSectionTypeName #> : System.Configuration.ConfigurationSection
+{
+	private <#= TypeHelper.GetTypeName(intType) #> _configData = new <#= NameResolveHelper.GetImplementClassNameByIntName(intType) #>();
+	public <#= TypeHelper.GetTypeName(intType) #> ConfigData { get {return _configData; } }
+ 
+
+	public <#= TypeHelper.GetTypeName(intType) #> ExtractConfigData()
+	{
+		return <#= NameResolveHelper.GetImplementClassNameByIntName(intType) #>.CopyInh(_configData);
+	}
+
+	protected override void InitializeDefault()
+    {
+		base.InitializeDefault();
+        _configData = new <#= NameResolveHelper.GetImplementClassNameByIntName(intType) #>();
+    }
+
+    protected override void DeserializeSection(System.Xml.XmlReader reader)
+    {
+		if (reader.NodeType == System.Xml.XmlNodeType.None)
+			reader.Read();
+		_configData = <#= NameResolveHelper.GetDeserializationFuncName(intType) #>(reader);
+    }
+
+    public override bool IsReadOnly()
+    {
+		return true;
+    }
+	
+
+	private T Parse<T>(string value)
+    {
+		return (T)System.ComponentModel.TypeDescriptor.GetConverter(typeof(T)).ConvertFromString(value);
+    }
+
+
+    private List<T> DeserializeList<T>(System.Xml.XmlReader reader, Func<System.Xml.XmlReader, T> readFnc, string expectedName)
+    {
+	    if (reader.NodeType != System.Xml.XmlNodeType.Element)
+            throw new System.Configuration.ConfigurationErrorsException("Expected Element node type", reader);
+
+        List<T> res = new List<T>();
+    
+        if (reader.IsEmptyElement)
+        {
+            reader.Skip();
+            return res;
+        }
+    
+        string initialName = reader.Name;
+    
+        reader.ReadStartElement();
+    
+        do
+        {
+            if (reader.NodeType == System.Xml.XmlNodeType.Element)
+            {
+                if (expectedName != null && reader.Name != expectedName)
+                    throw new System.Configuration.ConfigurationErrorsException("Unexpected element name inside list: " + reader.Name, reader);
+
+                T elem = readFnc(reader);
+                res.Add(elem);
+            }
+            else
+            {
+                reader.Skip();
+            }
+        }
+        while (reader.NodeType != System.Xml.XmlNodeType.EndElement || reader.Name != initialName);
+    
+    	reader.ReadEndElement();
+    
+        return res;
+    }
+
+
+    private Dictionary<TKey, TValue> DeserializeDictionary<TKey, TValue>(System.Xml.XmlReader reader, Func<System.Xml.XmlReader, TValue> readFnc, string expectedName)
+    {
+	    if (reader.NodeType != System.Xml.XmlNodeType.Element)
+            throw new System.Configuration.ConfigurationErrorsException("Expected Element node type", reader);
+
+        Dictionary<TKey, TValue> res = new Dictionary<TKey, TValue>();
+    
+        if (reader.IsEmptyElement)
+        {
+            reader.Skip();
+            return res;
+        }
+    
+        string initialName = reader.Name;
+    
+        reader.ReadStartElement();
+    
+        do
+        {
+            if (reader.NodeType == System.Xml.XmlNodeType.Element)
+            {
+                if (expectedName != null && reader.Name != expectedName)
+                    throw new System.Configuration.ConfigurationErrorsException("Unexpected element name inside list: " + reader.Name, reader);
+
+                string strKey = reader.GetAttribute("key");
+                if (strKey == null)
+                    throw new System.Configuration.ConfigurationErrorsException("Key not found for dictionary: " + reader.Name, reader);
+    
+                TKey key = Parse<TKey>(strKey);
+                TValue val = readFnc(reader);
+    
+                res.Add(key, val);
+            }
+            else
+            {
+                reader.Skip();
+            }
+        }
+        while (reader.NodeType != System.Xml.XmlNodeType.EndElement || reader.Name != initialName);
+    
+    	reader.ReadEndElement();
+    
+        return res;
+    }
+    
+    
+    private T DeserializeSimpleValueElement<T>(System.Xml.XmlReader reader)
+    {
+		if (reader.NodeType != System.Xml.XmlNodeType.Element)
+            throw new System.Configuration.ConfigurationErrorsException("Expected Element node type", reader);
+
+        string ElemName = reader.Name;
+    
+        string addValue = reader.GetAttribute("value");
+        if (addValue == null)
+            throw new System.Configuration.ConfigurationErrorsException("Value not found for SimpleValueElement '" + ElemName + "' inside element", reader);
+    
+        T res = Parse<T>(addValue);
+    
+        if (reader.IsEmptyElement)
+        {
+            reader.Read();
+        }
+        else
+        {
+            reader.Read();
+            if (reader.MoveToContent() != System.Xml.XmlNodeType.EndElement)
+                throw new System.Configuration.ConfigurationErrorsException("SimpleValueElement '" + ElemName + "' can't contains any other elements", reader);
+            reader.ReadEndElement();
+        }
+    
+        return res;
+    }
+
+
+    private T DeserializeSimpleValueElement<T>(System.Xml.XmlReader reader, string expectedName)
+    {
+	    if (reader.NodeType != System.Xml.XmlNodeType.Element)
+            throw new System.Configuration.ConfigurationErrorsException("Expected Element node type", reader);
+
+        if (expectedName != null && reader.Name != expectedName)
+            throw new System.Configuration.ConfigurationErrorsException("Unexpected element name inside list: " + reader.Name, reader);
+
+        string ElemName = reader.Name;
+
+        string addValue = reader.GetAttribute("value");
+        if (addValue == null)
+            throw new System.Configuration.ConfigurationErrorsException("Value not found for SimpleValueElement '" + ElemName + "' inside element", reader);
+
+        T res = Parse<T>(addValue);
+
+        if (reader.IsEmptyElement)
+        {
+            reader.Read();
+        }
+        else
+        {
+            reader.Read();
+            if (reader.MoveToContent() != System.Xml.XmlNodeType.EndElement)
+                throw new System.Configuration.ConfigurationErrorsException("SimpleValueElement '" + ElemName + "' can't contains any other elements", reader);
+            reader.ReadEndElement();
+        }
+
+        return res;
+    }
+
+
+
+<#+
+		this.PushIndent(Indent);
+
+
+		List<Type> allTps = GenerationTypeCollector.CollectAllTypesToImpl(intType);
+
+		foreach (var tp in allTps)
+        {
+			WriteCustomElementDeserializator(tp);
+			this.WriteLine("");
+
+			WriteCustomElementDeserializatorWithExpectedName(tp);
+			this.WriteLine("");
+
+			WriteCustomElementDeserializatorWithInheritance(tp);
+			this.WriteLine("");
+			this.WriteLine("");
+        }
+
+
+		this.PopIndent();
+		this.WriteLine("}");
+    }
+
+
+
+	// WriteCustomElementDeserializator
+	private void WriteCustomElementDeserializator(Type intType)
+    {
+		GenerationTypeInfo intTypeInfo = GenerationHelper.ExtractDataForType(intType);
+		if (intTypeInfo.IsMallformed)
+			throw new Exception("Bad type " + intType.Name);
+
+		HashSet<string> checkParsedElements = new HashSet<string>();
+
+
+#>
+private <#= TypeHelper.GetTypeName(intType) #> <#= NameResolveHelper.GetDeserializationFuncName(intType) #>(System.Xml.XmlReader reader)
+{
+	var res = new <#= NameResolveHelper.GetImplementClassNameByIntName(intType) #>();
+
+	HashSet<string> parsedElements = new HashSet<string>();
+
+<#+	
+		this.PushIndent(Indent);
+
+		WriteCustomElementDeserializatorOnlyAttrib(intType);
+		this.WriteLine("");
+
+
+#>
+if (reader.IsEmptyElement)
+{
+	reader.Skip();
+}
+else
+{
+	string initialName = reader.Name;
+<#+
+	if (intTypeInfo.DefaultInternals == null)
+		this.WriteLine(Indent + "reader.ReadStartElement();");
+#>
+	do
+    {
+		if (reader.NodeType != System.Xml.XmlNodeType.Element)
+        {
+			reader.Skip();
+		}
+		else
+		{			
+<#+
+
+		this.PushIndent(Indent);
+		this.PushIndent(Indent);
+		this.PushIndent(Indent);
+
+
+		if (intTypeInfo.DefaultInternals != null)
+        {
+			WriteCustomElementDeserializatorForDefaultInternals(intType, checkParsedElements);
+        }
+		else
+        {
+			WriteCustomElementDeserializatorMainSwitch(intType, checkParsedElements);
+        }
+
+		this.PopIndent();
+		this.PopIndent();
+		this.PopIndent();
+
+#>
+		}
+	}
+	while (reader.NodeType != System.Xml.XmlNodeType.EndElement || reader.Name != initialName);
+
+<#+
+	if (intTypeInfo.DefaultInternals == null)
+		this.WriteLine(Indent + "reader.ReadEndElement();");
+#>
+}
+
+<#+
+
+		this.WriteLine("HashSet<string> restElems = new HashSet<string>();");
+
+		foreach (var chckEl in checkParsedElements)
+			this.WriteLine("restElems.Add(\"" + chckEl + "\");");
+
+		this.WriteLine("restElems.RemoveWhere(o => parsedElements.Contains(o));");
+		
+		this.WriteLine("if (restElems.Count > 0)");
+		this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Not all required properties readed: \" + string.Join(\", \",restElems));");
+
+
+		this.WriteLine("return res;");
+		this.PopIndent();
+		this.WriteLine("}");
+
+    }
+
+
+
+		// WriteCustomElementDeserializatorWithExpectedName
+	private void WriteCustomElementDeserializatorWithExpectedName(Type intType)
+    {
+#>
+private <#= TypeHelper.GetTypeName(intType) #> <#= NameResolveHelper.GetDeserializationFuncName(intType) #>(System.Xml.XmlReader reader, string expectedName)
+{
+	if (reader.NodeType != System.Xml.XmlNodeType.Element)
+		throw new System.Configuration.ConfigurationErrorsException("Expected Element node type", reader);
+
+	if (expectedName != null && reader.Name != expectedName)
+		throw new System.Configuration.ConfigurationErrorsException("Unexpected element name for type '<#= TypeHelper.GetTypeName(intType) #>': " + reader.Name, reader);
+    
+	return <#= NameResolveHelper.GetDeserializationFuncName(intType) #>(reader);
+}
+<#+	
+    }
+
+
+
+		// WriteCustomElementDeserializatorWithInheritance
+	private void WriteCustomElementDeserializatorWithInheritance(Type intType)
+    {
+#>
+private <#= TypeHelper.GetTypeName(intType) #> <#= NameResolveHelper.GetDeserializationFuncName(intType, true) #>(System.Xml.XmlReader reader)
+{
+	if (reader.NodeType != System.Xml.XmlNodeType.Element)
+		throw new System.Configuration.ConfigurationErrorsException("Not an Element node type", reader);
+
+	switch (reader.Name)
+	{
+<#+	
+		this.PushIndent(Indent);
+		this.PushIndent(Indent);
+
+
+		foreach (var eSub in GenerationHelper.GetCfgSubstituteTypeAttribInit(intType))
+        {
+			string name = eSub.OverrideTypeName ?? NameResolveHelper.GetXmlNameByCSName(eSub.SubType);
+
+			this.WriteLine("case \"" + name + "\":");
+			this.WriteLine(Indent + "return " + NameResolveHelper.GetDeserializationFuncName(eSub.SubType) + "(reader);");
+        }
+
+		this.WriteLine("default:");
+		this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Unknown child type name: '\" + reader.Name + \"' for base type '" + TypeHelper.GetTypeName(intType) + "'\", reader);");
+
+		this.PopIndent();
+		this.WriteLine("}");
+		this.PopIndent();
+		this.WriteLine("}");
+    }
+
+
+
+
+
+	// WriteCustomElementDeserializatorOnlyAttrib
+	private void WriteCustomElementDeserializatorOnlyAttrib(Type intType)
+    {
+		bool attribWrt = false;
+
+				// записываем свойства, разрешаемые в качестве атрибутов
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType).Where(o => GenerationHelper.IsSimpleType(o.PropertyType)))
+		{
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null || !attribVal.CanBeUsed || attribVal.FixedStyle != ConfigPropertyStyle.XmlAttribute)
+				continue;
+
+			if (!attribWrt)
+            {
+				this.WriteLine("string attribGenTempVal = null;");
+				attribWrt = true;
+            }
+			
+			string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+
+			this.WriteLine("attribGenTempVal = reader.GetAttribute(\"" + name + "\");");
+			this.WriteLine("if (attribGenTempVal != null)");
+			this.WriteLine(Indent + string.Format("res.{0}(Parse<{1}>(attribGenTempVal));", NameResolveHelper.GetSetMethodByPropertyName(prop.Name), TypeHelper.GetTypeName(prop.PropertyType))); 
+
+			if (attribVal.Attrib.IsRequired)
+            {
+				this.WriteLine("else");
+				this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Attribute '" + name + " for element '" + TypeHelper.GetTypeName(intType) + "' not defined\", reader);");
+            }
+
+			this.WriteLine("");
+		}
+    }
+
+
+	// WriteCustomElementDeserializatorDictionarySwitch
+	private bool WriteCustomElementDeserializatorDictionarySwitch(Type intType, HashSet<string> checkParsedElements)
+    {
+		bool hasDictElems = false;
+
+#>
+string addKey = reader.GetAttribute("key");
+if (addKey == null)
+	throw new System.Configuration.ConfigurationErrorsException("Key not found for 'add' inside element '<#= intType.Name #>'", reader);	
+
+switch (addKey)
+{
+<#+
+		this.PushIndent(Indent);
+
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType))
+		{
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null)
+				continue;
+
+			if (attribVal.IsMallformed)
+				throw new Exception("bad property " + prop.Name);
+
+			if (!attribVal.CanBeUsed)
+				continue;
+
+			if (attribVal.FixedStyle != ConfigPropertyStyle.Dictionary)
+				continue;
+
+			if (attribVal.TypeKind != GenerationTypeKind.SimpleType)
+				throw new Exception("bad type kind for dictionary");
+
+			string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+			hasDictElems = true;
+
+
+			this.WriteLine("case \"" + name + "\":");
+			this.PushIndent(Indent);
+
+			this.WriteLine("parsedElements.Add(addKey);");
+			this.WriteLine(string.Format("res.{0}(DeserializeSimpleValueElement<{1}>(reader, \"add\"));", NameResolveHelper.GetSetMethodByPropertyName(prop.Name), TypeHelper.GetTypeName(prop.PropertyType))); 
+
+			if (attribVal.Attrib.IsRequired)
+            {	
+				checkParsedElements.Add(name);
+			}
+
+			this.WriteLine("break;");
+			this.PopIndent();
+        }
+
+		this.PopIndent();
+#>
+	default:
+		throw new System.Configuration.ConfigurationErrorsException("Unknown key " + addKey + " inside element '<#= TypeHelper.GetTypeName(intType) #>'", reader);
+}
+<#+
+
+		return hasDictElems;
+    }
+
+
+	// WriteCustomElementDeserializatorForDefaultInternals
+	private bool WriteCustomElementDeserializatorForDefaultInternals(Type intType, HashSet<string> checkParsedElements)
+    {
+		GenerationTypeInfo intTypeInfo = GenerationHelper.ExtractDataForType(intType);
+		if (intTypeInfo.IsMallformed)
+			throw new Exception("Bad type " + intType.Name);
+
+		PropertyInfo prop = TypeHelper.GetPropertiesCascaded(intType).Where(o => o.Name == intTypeInfo.DefaultInternals.PropertyName).Single();
+
+		var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+		if (attribVal == null)
+			return false;
+
+		if (attribVal.IsMallformed)
+			throw new Exception("bad property " + prop.Name);
+
+		if (!attribVal.CanBeUsed)
+			return false;
+
+		string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+
+		if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElement)
+        {
+			if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+            {
+				this.WriteLine("reader.Read();");
+				this.WriteLine("if (reader.MoveToContent() != System.Xml.XmlNodeType.Element)");
+				this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Element not found for property '" + name + "' inside '" + TypeHelper.GetTypeName(intType) + "\", reader);");
+
+				this.WriteLine("if (reader.Name == \"" + name + "\")");
+				this.WriteLine("{");
+				this.PushIndent(Indent);
+
+				this.WriteLine(string.Format("res.{0}({1}(reader));", NameResolveHelper.GetSetMethodByPropertyName(prop.Name), NameResolveHelper.GetDeserializationFuncName(prop.PropertyType))); 
+				this.WriteLine("parsedElements.Add(\"" + name + "\");");
+				if (attribVal.Attrib.IsRequired)
+                {
+					checkParsedElements.Add(name);
+                }
+
+				this.PopIndent();
+				this.WriteLine("}");
+				this.WriteLine("else");
+				this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Unknown element inside '" + TypeHelper.GetTypeName(intType) + "': \" + reader.Name, reader);");
+           
+				this.WriteLine("if (reader.MoveToContent() != System.Xml.XmlNodeType.EndElement)");
+				this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Injected element '" + name + "' inside '" + TypeHelper.GetTypeName(intType) + " can't contain several subelements\", reader);");
+
+				this.WriteLine("reader.ReadEndElement();");
+				this.WriteLine("break;");
+			}
+			else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+            {
+				if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+				{
+					Type elemType = GenerationHelper.GetListElementType(prop.PropertyType);
+
+					this.Write("var tmp_" + prop.Name + " = ");
+					this.Write(GetListDeserializationCode(elemType, false, false));
+					this.WriteLine(";");
+
+					if (attribVal.CollectionRestriction != null)
+                    {
+						this.Write("if (" + "tmp_" + prop.Name + ".Count < " + attribVal.CollectionRestriction.MinElementCount.ToString() + " || ");
+						this.WriteLine("tmp_" + prop.Name + ".Count > " + attribVal.CollectionRestriction.MaxElementCount.ToString() + ")");
+						this.PushIndent(Indent);
+						this.WriteLine("throw new System.Configuration.ConfigurationErrorsException(\"Incorrect collection size: " + prop.Name + "\");");
+						this.PopIndent();
+					}
+
+					this.Write("res." + NameResolveHelper.GetSetMethodByPropertyName(prop.Name) + "(");
+					this.Write("tmp_" + prop.Name);
+
+					if (prop.PropertyType.IsArray)
+						this.Write(".ToArray()");
+					this.WriteLine(");");
+					this.WriteLine("break;");
+				}
+				else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+				{
+					Type elemType = GenerationHelper.GetDictionaryValueType(prop.PropertyType);
+
+
+					this.Write("var tmp_" + prop.Name + " = ");
+					this.Write(
+						GetDictionaryDeserializationCode(GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+						GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+						false, false));
+					this.WriteLine(";");
+
+					if (attribVal.CollectionRestriction != null)
+                    {
+						this.Write("if (" + "tmp_" + prop.Name + ".Count < " + attribVal.CollectionRestriction.MinElementCount.ToString() + " || ");
+						this.WriteLine("tmp_" + prop.Name + ".Count > " + attribVal.CollectionRestriction.MaxElementCount.ToString() + ")");
+						this.PushIndent(Indent);
+						this.WriteLine("throw new System.Configuration.ConfigurationErrorsException(\"Incorrect collection size: " + prop.Name + "\");");
+						this.PopIndent();
+					}
+
+					this.Write("res." + NameResolveHelper.GetSetMethodByPropertyName(prop.Name) + "(");
+					this.Write("tmp_" + prop.Name);
+					this.WriteLine(");");
+					this.WriteLine("break;");
+				}
+				else
+				{
+					throw new Exception("Unknown type");
+				}
+            }
+        }
+		else if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElementInjectedType)
+        {
+			if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+            {
+				ConfigSubstituteTypeAttribute allSubstAttrib = null;
+				if (attribVal.Attrib.AllowInheritance)
+					allSubstAttrib = GenerationHelper.GetCfgSubstituteTypeAttribInit(prop.PropertyType)[0];
+				else
+					allSubstAttrib = GenerationHelper.GetOwnCfgSubstituteTypeAttrib(prop.PropertyType);
+
+				string testName = null;
+				if (allSubstAttrib != null)
+					testName = NameResolveHelper.GetXmlNameByCSName(allSubstAttrib.OverrideTypeName, allSubstAttrib.SubType);
+				else
+					testName = NameResolveHelper.GetXmlNameByCSName(prop.PropertyType);
+
+
+				this.WriteLine("reader.Read();");
+				this.WriteLine("if (reader.MoveToContent() != System.Xml.XmlNodeType.Element)");
+				this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Injected element not found for property '" + name + "' inside '" + TypeHelper.GetTypeName(intType) + "\", reader);");
+
+				if (attribVal.Attrib.AllowInheritance)
+					this.WriteLine(string.Format("res.{0}({1}(reader));", NameResolveHelper.GetSetMethodByPropertyName(prop.Name), NameResolveHelper.GetDeserializationFuncName(prop.PropertyType, attribVal.Attrib.AllowInheritance)));
+				else
+					this.WriteLine(string.Format("res.{0}({1}(reader, \"" + testName + "\"));", NameResolveHelper.GetSetMethodByPropertyName(prop.Name), NameResolveHelper.GetDeserializationFuncName(prop.PropertyType, attribVal.Attrib.AllowInheritance)));
+
+				this.WriteLine("if (reader.MoveToContent() != System.Xml.XmlNodeType.EndElement)");
+				this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Injected element '" + name + "' inside '" + TypeHelper.GetTypeName(intType) + " can't contain several subelements\", reader);");
+
+				this.WriteLine("reader.ReadEndElement();");
+
+				this.WriteLine("parsedElements.Add(\"" + name + "\");");
+				if (attribVal.Attrib.IsRequired)
+                {
+					checkParsedElements.Add(name);
+                }
+				this.WriteLine("break;");
+            }
+			else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+            {
+				if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+				{
+					Type elemType = GenerationHelper.GetListElementType(prop.PropertyType);
+
+					this.Write("var tmp_" + prop.Name + " = ");
+					this.Write(GetListDeserializationCode(elemType, attribVal.Attrib.AllowInheritance, true));
+					this.WriteLine(";");
+
+					if (attribVal.CollectionRestriction != null)
+                    {
+						this.Write("if (" + "tmp_" + prop.Name + ".Count < " + attribVal.CollectionRestriction.MinElementCount.ToString() + " || ");
+						this.WriteLine("tmp_" + prop.Name + ".Count > " + attribVal.CollectionRestriction.MaxElementCount.ToString() + ")");
+						this.PushIndent(Indent);
+						this.WriteLine("throw new System.Configuration.ConfigurationErrorsException(\"Incorrect collection size: " + prop.Name + "\");");
+						this.PopIndent();
+					}
+
+					this.Write("res." + NameResolveHelper.GetSetMethodByPropertyName(prop.Name) + "(");
+					this.Write("tmp_" + prop.Name);
+
+					if (prop.PropertyType.IsArray)
+						this.Write(".ToArray()");
+					this.WriteLine(");");
+					this.WriteLine("break;");
+				}
+				else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+				{
+					Type elemType = GenerationHelper.GetDictionaryValueType(prop.PropertyType);
+
+
+					this.Write("var tmp_" + prop.Name + " = ");
+					this.Write(
+						GetDictionaryDeserializationCode(GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+						GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+						attribVal.Attrib.AllowInheritance, true));
+					this.WriteLine(";");
+					
+
+					if (attribVal.CollectionRestriction != null)
+                    {
+						this.Write("if (" + "tmp_" + prop.Name + ".Count < " + attribVal.CollectionRestriction.MinElementCount.ToString() + " || ");
+						this.WriteLine("tmp_" + prop.Name + ".Count > " + attribVal.CollectionRestriction.MaxElementCount.ToString() + ")");
+						this.PushIndent(Indent);
+						this.WriteLine("throw new System.Configuration.ConfigurationErrorsException(\"Incorrect collection size: " + prop.Name + "\");");
+						this.PopIndent();
+					}
+
+					this.Write("res." + NameResolveHelper.GetSetMethodByPropertyName(prop.Name) + "(");
+					this.Write("tmp_" + prop.Name);
+					this.WriteLine(");");
+					this.WriteLine("break;");
+				}
+				else
+				{
+					throw new Exception("Unknown type");
+				}
+            }
+        }
+		return true;
+    }
+
+
+	// WriteCustomElementDeserializatorMainSwitch
+	private bool WriteCustomElementDeserializatorMainSwitch(Type intType, HashSet<string> checkParsedElements)
+    {		
+		bool hasInnerElems = false;
+
+		this.WriteLine("switch (reader.Name)");
+		this.WriteLine("{");
+		this.PushIndent(Indent);
+
+
+		// Dictionary style элементы
+		this.WriteLine("case \"add\":");
+		this.PushIndent(Indent);
+
+		if (WriteCustomElementDeserializatorDictionarySwitch(intType, checkParsedElements))
+        {
+			hasInnerElems = true;
+			this.WriteLine("break;");
+        }
+
+		this.PopIndent();
+
+
+		// записываем свойства, разрешаемые как элементы
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType))
+		{
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null)
+				continue;
+
+			if (attribVal.IsMallformed)
+				throw new Exception("bad property " + prop.Name);
+
+			if (!attribVal.CanBeUsed)
+				continue;
+			
+			
+			string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+			string defVal = NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(prop.PropertyType));
+			
+			if (attribVal.FixedStyle == ConfigPropertyStyle.XmlAttribute)
+			{
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.Dictionary)
+			{
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElement)
+			{
+				if (attribVal.TypeKind == GenerationTypeKind.SimpleType)
+				{
+					hasInnerElems = true;
+					this.WriteLine("case \"" + name + "\":");
+					this.PushIndent(Indent);
+
+					this.WriteLine(string.Format("res.{0}(DeserializeSimpleValueElement<{1}>(reader, \"" + name + "\"));", NameResolveHelper.GetSetMethodByPropertyName(prop.Name), TypeHelper.GetTypeName(prop.PropertyType))); 
+					this.WriteLine("parsedElements.Add(\"" + name + "\");");
+
+					if (attribVal.Attrib.IsRequired)
+					{
+						checkParsedElements.Add(name);
+					}
+
+
+					this.WriteLine("break;");
+					this.PopIndent();
+				}
+				else if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					hasInnerElems = true;
+					this.WriteLine("case \"" + name + "\":");
+					this.PushIndent(Indent);
+
+					this.WriteLine(string.Format("res.{0}({1}(reader));", NameResolveHelper.GetSetMethodByPropertyName(prop.Name), NameResolveHelper.GetDeserializationFuncName(prop.PropertyType))); 
+					this.WriteLine("parsedElements.Add(\"" + name + "\");");
+					if (attribVal.Attrib.IsRequired)
+                    {
+						checkParsedElements.Add(name);
+                    }
+
+					this.WriteLine("break;");
+					this.PopIndent();
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+					{
+						hasInnerElems = true;
+						Type elemType = GenerationHelper.GetListElementType(prop.PropertyType);
+
+						this.WriteLine("case \"" + name + "\":");
+						this.PushIndent(Indent);
+
+						this.Write("var tmp_" + prop.Name + " = ");
+						this.Write(GetListDeserializationCode(elemType, false, false));
+						this.WriteLine(";");
+
+						if (attribVal.CollectionRestriction != null)
+                        {
+							this.Write("if (" + "tmp_" + prop.Name + ".Count < " + attribVal.CollectionRestriction.MinElementCount.ToString() + " || ");
+							this.WriteLine("tmp_" + prop.Name + ".Count > " + attribVal.CollectionRestriction.MaxElementCount.ToString() + ")");
+							this.PushIndent(Indent);
+							this.WriteLine("throw new System.Configuration.ConfigurationErrorsException(\"Incorrect collection size: " + prop.Name + "\");");
+							this.PopIndent();
+						}
+
+						this.Write("res." + NameResolveHelper.GetSetMethodByPropertyName(prop.Name) + "(");
+						this.Write("tmp_" + prop.Name);
+
+						if (prop.PropertyType.IsArray)
+							this.Write(".ToArray()");
+						this.WriteLine(");");
+
+						this.WriteLine("parsedElements.Add(\"" + name + "\");");
+						if (attribVal.Attrib.IsRequired)
+						{
+							checkParsedElements.Add(name);
+						}
+
+						this.WriteLine("break;");
+						this.PopIndent();
+					}
+					else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+					{
+						hasInnerElems = true;
+						Type elemType = GenerationHelper.GetDictionaryValueType(prop.PropertyType);
+
+						this.WriteLine("case \"" + name + "\":");
+						this.PushIndent(Indent);
+
+						this.Write("var tmp_" + prop.Name + " = ");
+						this.Write(
+							GetDictionaryDeserializationCode(GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+							GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+							false, false));
+						this.WriteLine(";");
+
+						if (attribVal.CollectionRestriction != null)
+                        {
+							this.Write("if (" + "tmp_" + prop.Name + ".Count < " + attribVal.CollectionRestriction.MinElementCount.ToString() + " || ");
+							this.WriteLine("tmp_" + prop.Name + ".Count > " + attribVal.CollectionRestriction.MaxElementCount.ToString() + ")");
+							this.PushIndent(Indent);
+							this.WriteLine("throw new System.Configuration.ConfigurationErrorsException(\"Incorrect collection size: " + prop.Name + "\");");
+							this.PopIndent();
+						}
+
+						this.Write("res." + NameResolveHelper.GetSetMethodByPropertyName(prop.Name) + "(");
+						this.Write("tmp_" + prop.Name);
+						this.WriteLine(");");
+
+
+						this.WriteLine("parsedElements.Add(\"" + name + "\");");
+						if (attribVal.Attrib.IsRequired)
+						{
+							checkParsedElements.Add(name);
+						}
+
+						this.WriteLine("break;");
+						this.PopIndent();
+					}
+					else
+					{
+						throw new Exception("Unknown type");
+					}
+                }
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElementInjectedType)
+            {
+				if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					hasInnerElems = true;
+
+					ConfigSubstituteTypeAttribute allSubstAttrib = null;
+					if (attribVal.Attrib.AllowInheritance)
+						allSubstAttrib = GenerationHelper.GetCfgSubstituteTypeAttribInit(prop.PropertyType)[0];
+					else
+						allSubstAttrib = GenerationHelper.GetOwnCfgSubstituteTypeAttrib(prop.PropertyType);
+
+					string testName = null;
+					if (allSubstAttrib != null)
+						testName = NameResolveHelper.GetXmlNameByCSName(allSubstAttrib.OverrideTypeName, allSubstAttrib.SubType);
+					else
+						testName = NameResolveHelper.GetXmlNameByCSName(prop.PropertyType);
+
+
+					this.WriteLine("case \"" + name + "\":");
+					this.PushIndent(Indent);
+
+					this.WriteLine("reader.Read();");
+					this.WriteLine("if (reader.MoveToContent() != System.Xml.XmlNodeType.Element)");
+					this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Injected element not found for property '" + name + "' inside '" + TypeHelper.GetTypeName(intType) + "\", reader);");
+
+					if (attribVal.Attrib.AllowInheritance)
+						this.WriteLine(string.Format("res.{0}({1}(reader));", NameResolveHelper.GetSetMethodByPropertyName(prop.Name), NameResolveHelper.GetDeserializationFuncName(prop.PropertyType, attribVal.Attrib.AllowInheritance)));
+					else
+						this.WriteLine(string.Format("res.{0}({1}(reader, \"" + testName + "\"));", NameResolveHelper.GetSetMethodByPropertyName(prop.Name), NameResolveHelper.GetDeserializationFuncName(prop.PropertyType, attribVal.Attrib.AllowInheritance)));
+
+					this.WriteLine("if (reader.MoveToContent() != System.Xml.XmlNodeType.EndElement || reader.Name != \"" + name + "\")");
+					this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Injected element '" + name + "' inside '" + TypeHelper.GetTypeName(intType) + " can't contain several subelements\", reader);");
+
+					this.WriteLine("reader.ReadEndElement();");
+
+					this.WriteLine("parsedElements.Add(\"" + name + "\");");
+					if (attribVal.Attrib.IsRequired)
+                    {
+						checkParsedElements.Add(name);
+                    }
+
+					this.WriteLine("break;");
+					this.PopIndent();
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+					{
+						hasInnerElems = true;
+						Type elemType = GenerationHelper.GetListElementType(prop.PropertyType);
+
+						this.WriteLine("case \"" + name + "\":");
+						this.PushIndent(Indent);
+
+						this.Write("var tmp_" + prop.Name + " = ");
+						this.Write(GetListDeserializationCode(elemType, attribVal.Attrib.AllowInheritance, true));
+						this.WriteLine(";");
+
+						if (attribVal.CollectionRestriction != null)
+                        {
+							this.Write("if (" + "tmp_" + prop.Name + ".Count < " + attribVal.CollectionRestriction.MinElementCount.ToString() + " || ");
+							this.WriteLine("tmp_" + prop.Name + ".Count > " + attribVal.CollectionRestriction.MaxElementCount.ToString() + ")");
+							this.PushIndent(Indent);
+							this.WriteLine("throw new System.Configuration.ConfigurationErrorsException(\"Incorrect collection size: " + prop.Name + "\");");
+							this.PopIndent();
+						}
+
+						this.Write("res." + NameResolveHelper.GetSetMethodByPropertyName(prop.Name) + "(");
+						this.Write("tmp_" + prop.Name);
+
+						if (prop.PropertyType.IsArray)
+							this.Write(".ToArray()");
+						this.WriteLine(");");
+
+
+						this.WriteLine("parsedElements.Add(\"" + name + "\");");
+						if (attribVal.Attrib.IsRequired)
+						{
+							checkParsedElements.Add(name);
+						}
+
+						this.WriteLine("break;");
+						this.PopIndent();
+					}
+					else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+					{
+						hasInnerElems = true;
+						Type elemType = GenerationHelper.GetDictionaryValueType(prop.PropertyType);
+
+						this.WriteLine("case \"" + name + "\":");
+						this.PushIndent(Indent);
+				
+						
+						this.Write("var tmp_" + prop.Name + " = ");
+						this.Write(
+							GetDictionaryDeserializationCode(GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+							GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+							attribVal.Attrib.AllowInheritance, true));
+						this.WriteLine(";");
+						
+
+						if (attribVal.CollectionRestriction != null)
+                        {
+							this.Write("if (" + "tmp_" + prop.Name + ".Count < " + attribVal.CollectionRestriction.MinElementCount.ToString() + " || ");
+							this.WriteLine("tmp_" + prop.Name + ".Count > " + attribVal.CollectionRestriction.MaxElementCount.ToString() + ")");
+							this.PushIndent(Indent);
+							this.WriteLine("throw new System.Configuration.ConfigurationErrorsException(\"Incorrect collection size: " + prop.Name + "\");");
+							this.PopIndent();
+						}
+
+						this.Write("res." + NameResolveHelper.GetSetMethodByPropertyName(prop.Name) + "(");
+						this.Write("tmp_" + prop.Name);
+						this.WriteLine(");");
+
+						this.WriteLine("parsedElements.Add(\"" + name + "\");");
+						if (attribVal.Attrib.IsRequired)
+						{
+							checkParsedElements.Add(name);
+						}
+
+						this.WriteLine("break;");
+						this.PopIndent();
+					}
+					else
+					{
+						throw new Exception("Unknown type");
+					}
+                }
+            }
+		}
+
+
+		this.WriteLine("default:");
+		this.WriteLine(Indent + "throw new System.Configuration.ConfigurationErrorsException(\"Unknown element inside '" + TypeHelper.GetTypeName(intType) + "': \" + reader.Name, reader);");
+
+		this.PopIndent();
+		this.WriteLine("}");
+
+
+		return hasInnerElems;
+    }
+
+	// WriteListDeserializationCode
+	private string GetListDeserializationCode(Type elemType, bool allowInheritance, bool isInjectedTypeName)
+    {
+		StringBuilder res = new StringBuilder();
+
+		ConfigSubstituteTypeAttribute allSubstAttrib = null;
+		if (allowInheritance)
+			allSubstAttrib = GenerationHelper.GetCfgSubstituteTypeAttribInit(elemType)[0];
+		else
+			allSubstAttrib = GenerationHelper.GetOwnCfgSubstituteTypeAttrib(elemType);
+
+		string expectedName = null;
+		if (allSubstAttrib != null)
+			expectedName = NameResolveHelper.GetXmlNameByCSName(allSubstAttrib.OverrideTypeName, allSubstAttrib.SubType);
+		else
+			expectedName = NameResolveHelper.GetXmlNameByCSName(elemType);
+
+		res.Append("DeserializeList(reader, ");
+		if (GenerationHelper.IsComplexType(elemType))
+			res.Append(NameResolveHelper.GetDeserializationFuncName(elemType, allowInheritance));
+		else
+			res.Append("DeserializeSimpleValueElement<" + TypeHelper.GetTypeName(elemType) + ">");
+
+		if (allowInheritance)
+			res.Append(", null)");
+		else if (isInjectedTypeName)
+			res.Append(", \"" + expectedName + "\")");
+		else
+			res.Append(", \"add\")");
+
+		return res.ToString();
+    }
+
+
+		// GetDictionaryDeserializationCode
+	private string GetDictionaryDeserializationCode(Type keyType, Type valueType, bool allowInheritance, bool isInjectedTypeName)
+    {
+		StringBuilder res = new StringBuilder();
+
+		ConfigSubstituteTypeAttribute allSubstAttrib = null;
+		if (allowInheritance)
+			allSubstAttrib = GenerationHelper.GetCfgSubstituteTypeAttribInit(valueType)[0];
+		else
+			allSubstAttrib = GenerationHelper.GetOwnCfgSubstituteTypeAttrib(valueType);
+
+		string expectedName = null;
+		if (allSubstAttrib != null)
+			expectedName = NameResolveHelper.GetXmlNameByCSName(allSubstAttrib.OverrideTypeName, allSubstAttrib.SubType);
+		else
+			expectedName = NameResolveHelper.GetXmlNameByCSName(valueType);
+
+		res.Append("DeserializeDictionary<" + TypeHelper.GetTypeName(keyType) + ", " + TypeHelper.GetTypeName(valueType) + ">(reader, ");
+		if (GenerationHelper.IsComplexType(valueType))
+			res.Append(NameResolveHelper.GetDeserializationFuncName(valueType, allowInheritance));
+		else
+			res.Append("DeserializeSimpleValueElement<" + TypeHelper.GetTypeName(valueType) + ">");
+
+		if (allowInheritance)
+			res.Append(", null)");
+		else if (isInjectedTypeName)
+			res.Append(", \"" + expectedName + "\")");
+		else
+			res.Append(", \"add\")");
+
+		return res.ToString();
+    }
+
+	// ==============================================================
+
+
+
+
+	class GenerationTypeCollector
+    {
+		private static void AnalizeTypes(Type rootTp, HashSet<Type> col, bool incEnums)
+        {
+			if (!GenerationHelper.IsComplexType(rootTp))
+				return;
+
+
+			if (col.Contains(rootTp))
+				return;
+			col.Add(rootTp);
+
+			foreach (var prop in TypeHelper.GetPropertiesCascaded(rootTp))
+            {
+				PropertyGenerationInfo attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+				if (attribVal == null)
+					continue;
+
+				if (attribVal.IsMallformed)
+					throw new Exception("bad property " + prop.Name);
+
+				if (!attribVal.CanBeUsed)
+					continue;
+
+				if (attribVal.TypeKind == GenerationTypeKind.SimpleType)
+                {
+					if (incEnums && prop.PropertyType.IsEnum)
+						col.Add(prop.PropertyType);
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					AnalizeTypes(prop.PropertyType, col, incEnums);
+
+					if (attribVal.Attrib.AllowInheritance)
+                    {
+						var tps = GenerationHelper.GetCfgSubstituteTypeAttribInit(prop.PropertyType);
+						foreach (var elemAttr in tps)
+							AnalizeTypes(elemAttr.SubType, col, incEnums);
+                    }
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+                    {
+						var elemTp = GenerationHelper.GetListElementType(prop.PropertyType);
+						if (GenerationHelper.IsComplexType(elemTp))
+                        {
+							AnalizeTypes(elemTp, col, incEnums);
+							if (attribVal.Attrib.AllowInheritance)
+							{
+								var tps = GenerationHelper.GetCfgSubstituteTypeAttribInit(elemTp);
+								foreach (var elemAttr in tps)
+									AnalizeTypes(elemAttr.SubType, col, incEnums);
+							}
+                        }
+                    }
+					else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+                    {
+						var elemTp = GenerationHelper.GetDictionaryValueType(prop.PropertyType);
+						if (GenerationHelper.IsComplexType(elemTp))
+                        {
+							AnalizeTypes(elemTp, col, incEnums);
+							if (attribVal.Attrib.AllowInheritance)
+							{
+								var tps = GenerationHelper.GetCfgSubstituteTypeAttribInit(elemTp);
+								foreach (var elemAttr in tps)
+									AnalizeTypes(elemAttr.SubType, col, incEnums);
+							}
+                        }
+                    }
+					else
+                    {
+						throw new Exception("unknown special type");
+                    }
+                }
+            }
+        }
+
+		public static List<Type> CollectAllTypesToImpl(Type rootTp)
+        {
+			HashSet<Type> col = new HashSet<Type>();
+
+			AnalizeTypes(rootTp, col, false);
+
+			return col.ToList();
+        }
+
+		public static List<Type> CollectAllTypesToImplWithEnums(Type rootTp)
+        {
+			HashSet<Type> col = new HashSet<Type>();
+
+			AnalizeTypes(rootTp, col, true);
+
+			return col.ToList();
+        }
+    }
+
+#>

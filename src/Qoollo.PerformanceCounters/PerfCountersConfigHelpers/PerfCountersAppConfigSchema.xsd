@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<xs:schema xmlns:tns="Qoollo.PerformanceCounters.Configuration.PerfCountersConfigurationSection_NS" elementFormDefault="qualified" targetNamespace="Qoollo.PerformanceCounters.Configuration.PerfCountersConfigurationSection_NS" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="PerfCountersConfigurationSection" type="tns:perfCountersConfigurationSection_xsdTp" />
+  <xs:complexType name="perfCountersConfigurationSection_xsdTp">
+    <xs:choice>
+      <xs:element name="graphiteCounters" type="tns:graphiteCounters_xsdTp" />
+      <xs:element name="internalCounters" type="tns:internalCounters_xsdTp" />
+      <xs:element name="netCounters" type="tns:netCounters_xsdTp" />
+      <xs:element name="winCounters" type="tns:winCounters_xsdTp" />
+      <xs:element name="compositeCounters" type="tns:compositeCounters_xsdTp" />
+      <xs:element name="nullCounters" type="tns:nullCounters_xsdTp" />
+    </xs:choice>
+  </xs:complexType>
+  <xs:complexType name="perfCountersConfiguration_xsdTp" />
+  <xs:complexType name="graphiteCounters_xsdTp">
+    <xs:attribute name="distributionPeriodMs" type="xs:int" use="optional" default="1000">
+      <xs:annotation>
+        <xs:documentation>DistributionPeriodMs, Type = Int32, IsRequired = False, Default = 1000</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="namePrefixFormatString" type="xs:string" use="optional" default="{MachineName}.{ProcessName}">
+      <xs:annotation>
+        <xs:documentation>NamePrefixFormatString, Type = String, IsRequired = False, Default = {MachineName}.{ProcessName}</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="serverAddress" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>ServerAddress, Type = String, IsRequired = True</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="serverPort" type="xs:int" use="optional" default="2003">
+      <xs:annotation>
+        <xs:documentation>ServerPort, Type = Int32, IsRequired = False, Default = 2003</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:complexType name="internalCounters_xsdTp" />
+  <xs:complexType name="netCounters_xsdTp">
+    <xs:attribute name="distributionPeriodMs" type="xs:int" use="optional" default="1000">
+      <xs:annotation>
+        <xs:documentation>DistributionPeriodMs, Type = Int32, IsRequired = False, Default = 1000</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="serverAddress" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>ServerAddress, Type = String, IsRequired = True</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="serverPort" type="xs:int" use="optional" default="26115">
+      <xs:annotation>
+        <xs:documentation>ServerPort, Type = Int32, IsRequired = False, Default = 26115</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:complexType name="winCounters_xsdTp">
+    <xs:attribute name="instantiationMode" type="tns:winCountersInstantiationModeCfg_xsdTp" use="optional" default="UseExistedIfPossible">
+      <xs:annotation>
+        <xs:documentation>InstantiationMode, Type = WinCountersInstantiationModeCfg, IsRequired = False, Default = UseExistedIfPossible</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="categoryNamePrefix" type="xs:string" use="optional" default="">
+      <xs:annotation>
+        <xs:documentation>CategoryNamePrefix, Type = String, IsRequired = False, Default = </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="machineName" type="xs:string" use="optional" default=".">
+      <xs:annotation>
+        <xs:documentation>MachineName, Type = String, IsRequired = False, Default = .</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="isReadOnlyCounters" type="tns:customBool__sp_xsdTp" use="optional" default="false">
+      <xs:annotation>
+        <xs:documentation>IsReadOnlyCounters, Type = Boolean, IsRequired = False, Default = false</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="preferedBitness" type="tns:winCountersPreferedBitnessCfg_xsdTp" use="optional" default="SameAsOperatingSystemBitness">
+      <xs:annotation>
+        <xs:documentation>PreferedBitness, Type = WinCountersPreferedBitnessCfg, IsRequired = False, Default = SameAsOperatingSystemBitness</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="existedInstancesTreatment" type="tns:winCountersExistedInstancesTreatmentCfg_xsdTp" use="optional" default="LoadExisted">
+      <xs:annotation>
+        <xs:documentation>ExistedInstancesTreatment, Type = WinCountersExistedInstancesTreatmentCfg, IsRequired = False, Default = LoadExisted</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:simpleType name="winCountersInstantiationModeCfg_xsdTp">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="AlwaysCreateNew" />
+      <xs:enumeration value="UseExistedIfPossible" />
+      <xs:enumeration value="UseOnlyExisted" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="winCountersPreferedBitnessCfg_xsdTp">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="SameAsOperatingSystemBitness" />
+      <xs:enumeration value="Prefer32BitCounters" />
+      <xs:enumeration value="Prefer64BitCounters" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="winCountersExistedInstancesTreatmentCfg_xsdTp">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="IgnoreExisted" />
+      <xs:enumeration value="LoadExisted" />
+      <xs:enumeration value="RemoveExisted" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="compositeCounters_xsdTp">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="graphiteCounters" type="tns:graphiteCounters_xsdTp" />
+        <xs:element name="internalCounters" type="tns:internalCounters_xsdTp" />
+        <xs:element name="netCounters" type="tns:netCounters_xsdTp" />
+        <xs:element name="winCounters" type="tns:winCounters_xsdTp" />
+        <xs:element name="compositeCounters" type="tns:compositeCounters_xsdTp" />
+        <xs:element name="nullCounters" type="tns:nullCounters_xsdTp" />
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="nullCounters_xsdTp" />
+  <xs:complexType name="add__sp_xsdTp">
+    <xs:attribute name="key" type="xs:string" use="required" />
+    <xs:attribute name="value" type="xs:string" use="required" />
+  </xs:complexType>
+  <xs:simpleType name="customBool__sp_xsdTp">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="false" />
+      <xs:enumeration value="true" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

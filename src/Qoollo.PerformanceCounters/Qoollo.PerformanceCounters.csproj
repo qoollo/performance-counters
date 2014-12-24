@@ -1,0 +1,361 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B921E9E9-F32E-4959-A9F1-734F66DD4FE8}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Qoollo.PerformanceCounters</RootNamespace>
+    <AssemblyName>Qoollo.PerformanceCounters</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <CodeContractsAssemblyMode>1</CodeContractsAssemblyMode>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeContractsEnableRuntimeChecking>False</CodeContractsEnableRuntimeChecking>
+    <CodeContractsRuntimeOnlyPublicSurface>False</CodeContractsRuntimeOnlyPublicSurface>
+    <CodeContractsRuntimeThrowOnFailure>True</CodeContractsRuntimeThrowOnFailure>
+    <CodeContractsRuntimeCallSiteRequires>False</CodeContractsRuntimeCallSiteRequires>
+    <CodeContractsRuntimeSkipQuantifiers>False</CodeContractsRuntimeSkipQuantifiers>
+    <CodeContractsRunCodeAnalysis>False</CodeContractsRunCodeAnalysis>
+    <CodeContractsNonNullObligations>True</CodeContractsNonNullObligations>
+    <CodeContractsBoundsObligations>True</CodeContractsBoundsObligations>
+    <CodeContractsArithmeticObligations>False</CodeContractsArithmeticObligations>
+    <CodeContractsEnumObligations>False</CodeContractsEnumObligations>
+    <CodeContractsRedundantAssumptions>False</CodeContractsRedundantAssumptions>
+    <CodeContractsMissingPublicRequiresAsWarnings>True</CodeContractsMissingPublicRequiresAsWarnings>
+    <CodeContractsInferRequires>True</CodeContractsInferRequires>
+    <CodeContractsInferEnsures>False</CodeContractsInferEnsures>
+    <CodeContractsInferObjectInvariants>False</CodeContractsInferObjectInvariants>
+    <CodeContractsSuggestAssumptions>False</CodeContractsSuggestAssumptions>
+    <CodeContractsSuggestRequires>True</CodeContractsSuggestRequires>
+    <CodeContractsSuggestObjectInvariants>False</CodeContractsSuggestObjectInvariants>
+    <CodeContractsRunInBackground>True</CodeContractsRunInBackground>
+    <CodeContractsShowSquigglies>True</CodeContractsShowSquigglies>
+    <CodeContractsUseBaseLine>False</CodeContractsUseBaseLine>
+    <CodeContractsEmitXMLDocs>False</CodeContractsEmitXMLDocs>
+    <CodeContractsCustomRewriterAssembly />
+    <CodeContractsCustomRewriterClass />
+    <CodeContractsLibPaths />
+    <CodeContractsExtraRewriteOptions />
+    <CodeContractsExtraAnalysisOptions />
+    <CodeContractsSQLServerOption />
+    <CodeContractsBaseLineFile />
+    <CodeContractsCacheAnalysisResults>True</CodeContractsCacheAnalysisResults>
+    <CodeContractsFailBuildOnWarnings>False</CodeContractsFailBuildOnWarnings>
+    <CodeContractsRuntimeCheckingLevel>Full</CodeContractsRuntimeCheckingLevel>
+    <CodeContractsReferenceAssembly>Build</CodeContractsReferenceAssembly>
+    <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <DocumentationFile>bin\Debug\Qoollo.PerformanceCounters.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeContractsEnableRuntimeChecking>False</CodeContractsEnableRuntimeChecking>
+    <CodeContractsRuntimeOnlyPublicSurface>False</CodeContractsRuntimeOnlyPublicSurface>
+    <CodeContractsRuntimeThrowOnFailure>True</CodeContractsRuntimeThrowOnFailure>
+    <CodeContractsRuntimeCallSiteRequires>False</CodeContractsRuntimeCallSiteRequires>
+    <CodeContractsRuntimeSkipQuantifiers>False</CodeContractsRuntimeSkipQuantifiers>
+    <CodeContractsRunCodeAnalysis>False</CodeContractsRunCodeAnalysis>
+    <CodeContractsNonNullObligations>True</CodeContractsNonNullObligations>
+    <CodeContractsBoundsObligations>True</CodeContractsBoundsObligations>
+    <CodeContractsArithmeticObligations>False</CodeContractsArithmeticObligations>
+    <CodeContractsEnumObligations>False</CodeContractsEnumObligations>
+    <CodeContractsRedundantAssumptions>False</CodeContractsRedundantAssumptions>
+    <CodeContractsMissingPublicRequiresAsWarnings>True</CodeContractsMissingPublicRequiresAsWarnings>
+    <CodeContractsInferRequires>True</CodeContractsInferRequires>
+    <CodeContractsInferEnsures>False</CodeContractsInferEnsures>
+    <CodeContractsInferObjectInvariants>False</CodeContractsInferObjectInvariants>
+    <CodeContractsSuggestAssumptions>False</CodeContractsSuggestAssumptions>
+    <CodeContractsSuggestRequires>True</CodeContractsSuggestRequires>
+    <CodeContractsSuggestObjectInvariants>False</CodeContractsSuggestObjectInvariants>
+    <CodeContractsRunInBackground>True</CodeContractsRunInBackground>
+    <CodeContractsShowSquigglies>True</CodeContractsShowSquigglies>
+    <CodeContractsUseBaseLine>False</CodeContractsUseBaseLine>
+    <CodeContractsEmitXMLDocs>False</CodeContractsEmitXMLDocs>
+    <CodeContractsCustomRewriterAssembly />
+    <CodeContractsCustomRewriterClass />
+    <CodeContractsLibPaths />
+    <CodeContractsExtraRewriteOptions />
+    <CodeContractsExtraAnalysisOptions />
+    <CodeContractsSQLServerOption />
+    <CodeContractsBaseLineFile />
+    <CodeContractsCacheAnalysisResults>True</CodeContractsCacheAnalysisResults>
+    <CodeContractsFailBuildOnWarnings>False</CodeContractsFailBuildOnWarnings>
+    <CodeContractsRuntimeCheckingLevel>Full</CodeContractsRuntimeCheckingLevel>
+    <CodeContractsReferenceAssembly>DoNotBuild</CodeContractsReferenceAssembly>
+    <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
+    <DocumentationFile>bin\Release\Qoollo.PerformanceCounters.xml</DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'DebugSC|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\DebugSC\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeContractsEnableRuntimeChecking>False</CodeContractsEnableRuntimeChecking>
+    <CodeContractsRuntimeOnlyPublicSurface>False</CodeContractsRuntimeOnlyPublicSurface>
+    <CodeContractsRuntimeThrowOnFailure>True</CodeContractsRuntimeThrowOnFailure>
+    <CodeContractsRuntimeCallSiteRequires>False</CodeContractsRuntimeCallSiteRequires>
+    <CodeContractsRuntimeSkipQuantifiers>False</CodeContractsRuntimeSkipQuantifiers>
+    <CodeContractsRunCodeAnalysis>False</CodeContractsRunCodeAnalysis>
+    <CodeContractsNonNullObligations>True</CodeContractsNonNullObligations>
+    <CodeContractsBoundsObligations>True</CodeContractsBoundsObligations>
+    <CodeContractsArithmeticObligations>False</CodeContractsArithmeticObligations>
+    <CodeContractsEnumObligations>False</CodeContractsEnumObligations>
+    <CodeContractsRedundantAssumptions>False</CodeContractsRedundantAssumptions>
+    <CodeContractsMissingPublicRequiresAsWarnings>True</CodeContractsMissingPublicRequiresAsWarnings>
+    <CodeContractsInferRequires>True</CodeContractsInferRequires>
+    <CodeContractsInferEnsures>False</CodeContractsInferEnsures>
+    <CodeContractsInferObjectInvariants>False</CodeContractsInferObjectInvariants>
+    <CodeContractsSuggestAssumptions>False</CodeContractsSuggestAssumptions>
+    <CodeContractsSuggestRequires>True</CodeContractsSuggestRequires>
+    <CodeContractsSuggestObjectInvariants>False</CodeContractsSuggestObjectInvariants>
+    <CodeContractsRunInBackground>True</CodeContractsRunInBackground>
+    <CodeContractsShowSquigglies>True</CodeContractsShowSquigglies>
+    <CodeContractsUseBaseLine>False</CodeContractsUseBaseLine>
+    <CodeContractsEmitXMLDocs>False</CodeContractsEmitXMLDocs>
+    <CodeContractsCustomRewriterAssembly />
+    <CodeContractsCustomRewriterClass />
+    <CodeContractsLibPaths />
+    <CodeContractsExtraRewriteOptions />
+    <CodeContractsExtraAnalysisOptions />
+    <CodeContractsSQLServerOption />
+    <CodeContractsBaseLineFile />
+    <CodeContractsCacheAnalysisResults>True</CodeContractsCacheAnalysisResults>
+    <CodeContractsFailBuildOnWarnings>False</CodeContractsFailBuildOnWarnings>
+    <CodeContractsRuntimeCheckingLevel>Full</CodeContractsRuntimeCheckingLevel>
+    <CodeContractsReferenceAssembly>Build</CodeContractsReferenceAssembly>
+    <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'DebugRC|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\DebugRC\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeContractsEnableRuntimeChecking>False</CodeContractsEnableRuntimeChecking>
+    <CodeContractsRuntimeOnlyPublicSurface>False</CodeContractsRuntimeOnlyPublicSurface>
+    <CodeContractsRuntimeThrowOnFailure>True</CodeContractsRuntimeThrowOnFailure>
+    <CodeContractsRuntimeCallSiteRequires>False</CodeContractsRuntimeCallSiteRequires>
+    <CodeContractsRuntimeSkipQuantifiers>False</CodeContractsRuntimeSkipQuantifiers>
+    <CodeContractsRunCodeAnalysis>False</CodeContractsRunCodeAnalysis>
+    <CodeContractsNonNullObligations>True</CodeContractsNonNullObligations>
+    <CodeContractsBoundsObligations>True</CodeContractsBoundsObligations>
+    <CodeContractsArithmeticObligations>False</CodeContractsArithmeticObligations>
+    <CodeContractsEnumObligations>False</CodeContractsEnumObligations>
+    <CodeContractsRedundantAssumptions>False</CodeContractsRedundantAssumptions>
+    <CodeContractsMissingPublicRequiresAsWarnings>True</CodeContractsMissingPublicRequiresAsWarnings>
+    <CodeContractsInferRequires>True</CodeContractsInferRequires>
+    <CodeContractsInferEnsures>False</CodeContractsInferEnsures>
+    <CodeContractsInferObjectInvariants>False</CodeContractsInferObjectInvariants>
+    <CodeContractsSuggestAssumptions>False</CodeContractsSuggestAssumptions>
+    <CodeContractsSuggestRequires>True</CodeContractsSuggestRequires>
+    <CodeContractsSuggestObjectInvariants>False</CodeContractsSuggestObjectInvariants>
+    <CodeContractsRunInBackground>True</CodeContractsRunInBackground>
+    <CodeContractsShowSquigglies>True</CodeContractsShowSquigglies>
+    <CodeContractsUseBaseLine>False</CodeContractsUseBaseLine>
+    <CodeContractsEmitXMLDocs>False</CodeContractsEmitXMLDocs>
+    <CodeContractsCustomRewriterAssembly />
+    <CodeContractsCustomRewriterClass />
+    <CodeContractsLibPaths />
+    <CodeContractsExtraRewriteOptions />
+    <CodeContractsExtraAnalysisOptions />
+    <CodeContractsSQLServerOption />
+    <CodeContractsBaseLineFile />
+    <CodeContractsCacheAnalysisResults>True</CodeContractsCacheAnalysisResults>
+    <CodeContractsFailBuildOnWarnings>False</CodeContractsFailBuildOnWarnings>
+    <CodeContractsRuntimeCheckingLevel>Full</CodeContractsRuntimeCheckingLevel>
+    <CodeContractsReferenceAssembly>DoNotBuild</CodeContractsReferenceAssembly>
+    <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CompositeCounters\Categories\CompositeEmptyCategory.cs" />
+    <Compile Include="CompositeCounters\Categories\CompositeSingleInstanceCategory.cs" />
+    <Compile Include="CompositeCounters\Categories\CompositeInstanceInMultiInstanceCategory.cs" />
+    <Compile Include="CompositeCounters\Categories\CompositeMultiInstanceCategory.cs" />
+    <Compile Include="CompositeCounters\CompositeCounterFactory.cs" />
+    <Compile Include="CompositeCounters\Counters\CompositeAverageCountCounter.cs" />
+    <Compile Include="CompositeCounters\Counters\CompositeAverageTimeCounter.cs" />
+    <Compile Include="CompositeCounters\Counters\CompositeCounterDescriptor.cs" />
+    <Compile Include="CompositeCounters\Counters\CompositeElapsedTimeCounter.cs" />
+    <Compile Include="CompositeCounters\Counters\CompositeMomentTimeCounter.cs" />
+    <Compile Include="CompositeCounters\Counters\CompositeNumberOfItemsCounter.cs" />
+    <Compile Include="CompositeCounters\Counters\CompositeOperationsPerSecondCounter.cs" />
+    <Compile Include="Configuration\Configurator.cs" />
+    <Compile Include="Configuration\PerfCountersAppConfig\AppConfigLoader.cs" />
+    <Compile Include="Configuration\PerfCountersAppConfig\ConfigurationFormatConverter.cs" />
+    <Compile Include="Configuration\PerfCountersAppConfig\IPerfCountersConfigurationSection_AppConfigLoader.cs" />
+    <Compile Include="Configuration\PerfCountersAppConfig\PerfCountersConfigurationInterfaces.cs" />
+    <Compile Include="Configuration\PerfCountersConfiguration.cs" />
+    <Compile Include="Configuration\PerfCountersTypeEnum.cs" />
+    <Compile Include="Exceptions\PerformanceCountersConfigurationException.cs" />
+    <Compile Include="GraphiteCounters\CountersInfoAggregating\GraphiteCountersInfoAggregator.cs" />
+    <Compile Include="GraphiteCounters\CountersValueDistribution\GraphiteCountersPrefixConverter.cs" />
+    <Compile Include="GraphiteCounters\CountersValueDistribution\GraphiteCountersValueDistributor.cs" />
+    <Compile Include="GraphiteCounters\GraphiteCounterFactory.cs" />
+    <Compile Include="GraphiteCounters\Net\GraphiteCounterData.cs" />
+    <Compile Include="GraphiteCounters\Net\GraphiteCountersStableNetClient.cs" />
+    <Compile Include="GraphiteCounters\Net\IGraphiteCountersAPI.cs" />
+    <Compile Include="Helpers\LocalMachineInfo.cs" />
+    <Compile Include="NetCounters\Categories\INetCategoriesExtendedInfo.cs" />
+    <Compile Include="NetCounters\Categories\NetEmptyCategory.cs" />
+    <Compile Include="NetCounters\Categories\NetInstanceInMultiInstanceCategory.cs" />
+    <Compile Include="NetCounters\Categories\NetMultiInstanceCategory.cs" />
+    <Compile Include="NetCounters\Categories\NetSingleInstanceCategory.cs" />
+    <Compile Include="NetCounters\CountersInfoAggregating\CategoryAggregatedInfo.cs" />
+    <Compile Include="NetCounters\CountersInfoAggregating\CounterDescriptorAggregatedInfo.cs" />
+    <Compile Include="NetCounters\CountersInfoAggregating\CountersInfoAggregator.cs" />
+    <Compile Include="NetCounters\CountersInfoAggregating\InstanceAggregatedInfo.cs" />
+    <Compile Include="NetCounters\CountersValueDistribution\CounterValueDistributorBase.cs" />
+    <Compile Include="NetCounters\CountersValueDistribution\NetCountersValueDistributor.cs" />
+    <Compile Include="NetCounters\NetAPI\ClientData.cs" />
+    <Compile Include="NetCounters\NetAPI\CounterDescriptionData.cs" />
+    <Compile Include="NetCounters\NetAPI\CounterValueData.cs" />
+    <Compile Include="NetCounters\NetAPI\INetworkCountersAPI.cs" />
+    <Compile Include="NetCounters\NetCounterFactory.cs" />
+    <Compile Include="NetCounters\Net\PerfCountersNetClient.cs" />
+    <Compile Include="NetCounters\Net\PerfCountersNetServer.cs" />
+    <Compile Include="NetCounters\Net\PerfCountersStableNetClient.cs" />
+    <Compile Include="PerfCountersContainer.cs" />
+    <Compile Include="Exceptions\CategoryCreationException.cs" />
+    <Compile Include="Exceptions\CounterNotExistException.cs" />
+    <Compile Include="Exceptions\DuplicateCategoryNameException.cs" />
+    <Compile Include="Exceptions\InvalidCounterDefinitionException.cs" />
+    <Compile Include="Exceptions\InvalidCounterTypeException.cs" />
+    <Compile Include="Exceptions\UnknownCounterTypeException.cs" />
+    <Compile Include="Generic\Counters\AverageCountCounter.cs" />
+    <Compile Include="Generic\Counters\CounterTypeConverter.cs" />
+    <Compile Include="Generic\Counters\ElapsedTimeCounter.cs" />
+    <Compile Include="Generic\Counters\MomentTimeCounter.cs" />
+    <Compile Include="Generic\Counters\OperationsPerSecondCounter.cs" />
+    <Compile Include="Generic\Wrappers\CounterAutoInitialization\CounterAttribute.cs" />
+    <Compile Include="Exceptions\DuplicateCounterNameException.cs" />
+    <Compile Include="Exceptions\PerformanceCountersException.cs" />
+    <Compile Include="Generic\Categories\CategoryTypes.cs" />
+    <Compile Include="Generic\Categories\EmptyCategory.cs" />
+    <Compile Include="Generic\Categories\InstanceInMultiInstanceCategory.cs" />
+    <Compile Include="Generic\Counters\AverageTimeCounter.cs" />
+    <Compile Include="Generic\Counters\TimeCounterTimer.cs" />
+    <Compile Include="Generic\Counters\Counter.cs" />
+    <Compile Include="Generic\Counters\NumberOfItemsCounter.cs" />
+    <Compile Include="Generic\Categories\Category.cs" />
+    <Compile Include="Generic\Wrappers\CategoryWrapper.cs" />
+    <Compile Include="Generic\Wrappers\CounterAutoInitialization\CounterPropertyInfo.cs" />
+    <Compile Include="Generic\Wrappers\EmptyCategoryWrapper.cs" />
+    <Compile Include="Generic\Wrappers\MultiInstanceCategoryWrapper.cs" />
+    <Compile Include="Generic\Wrappers\InstanceInMultiInstanceCategoryWrapper.cs" />
+    <Compile Include="Generic\Wrappers\SingleInstanceCategoryWrapper.cs" />
+    <Compile Include="Generic\CounterFactory.cs" />
+    <Compile Include="Helpers\Volatile.cs" />
+    <Compile Include="Initialization\Initializer.cs" />
+    <Compile Include="Initialization\PerfCountersContainerAttribute.cs" />
+    <Compile Include="Initialization\PerfCountersInitializationMethodAttribute.cs" />
+    <Compile Include="InternalCounters\Categories\InternalEmptyCategory.cs" />
+    <Compile Include="InternalCounters\Categories\InternalInstanceInMultiInstanceCategory.cs" />
+    <Compile Include="InternalCounters\Categories\InternalMultiInstanceCategory.cs" />
+    <Compile Include="InternalCounters\Categories\InternalSingleInstanceCategory.cs" />
+    <Compile Include="InternalCounters\Counters\InternalAverageCountCounter.cs" />
+    <Compile Include="InternalCounters\Counters\InternalAverageTimeCounter.cs" />
+    <Compile Include="InternalCounters\Counters\InternalCounterDescriptor.cs" />
+    <Compile Include="InternalCounters\Counters\InternalElapsedTimeCounter.cs" />
+    <Compile Include="InternalCounters\Counters\InternalMomentTimeCounter.cs" />
+    <Compile Include="InternalCounters\Counters\InternalNumberOfItemsCounter.cs" />
+    <Compile Include="InternalCounters\Counters\InternalOperationsPerSecondCounter.cs" />
+    <Compile Include="InternalCounters\InternalCounterFactory.cs" />
+    <Compile Include="NullCounters\Categories\NullEmptyCategory.cs" />
+    <Compile Include="NullCounters\Categories\NullInstanceInMultiInstanceCategory.cs" />
+    <Compile Include="NullCounters\Categories\NullMultiInstanceCategory.cs" />
+    <Compile Include="NullCounters\Categories\NullSingleInstanceCategory.cs" />
+    <Compile Include="NullCounters\Counters\NullAverageCountCounter.cs" />
+    <Compile Include="NullCounters\Counters\NullAverageTimeCounter.cs" />
+    <Compile Include="NullCounters\Counters\NullElapsedTimeCounter.cs" />
+    <Compile Include="NullCounters\Counters\NullMomentTimeCounter.cs" />
+    <Compile Include="NullCounters\Counters\NullNumberOfItemsCounter.cs" />
+    <Compile Include="NullCounters\Counters\NullOperationPerSecondCounter.cs" />
+    <Compile Include="NullCounters\NullCounterFactory.cs" />
+    <Compile Include="PerfCountersDefault.cs" />
+    <Compile Include="PerfCountersInstantiationFactory.cs" />
+    <Compile Include="WinCounters\Categories\IWinCategoryInitialization.cs" />
+    <Compile Include="WinCounters\Categories\RecreateModeCategories\RecreateWinMultiInstanceCategory.cs" />
+    <Compile Include="WinCounters\Categories\RecreateModeCategories\RecreateWinSingleInstanceCategory.cs" />
+    <Compile Include="WinCounters\Categories\UseOnlyExistedModeCategrories\UseOnlyExistedWinMultiInstanceCategory.cs" />
+    <Compile Include="WinCounters\Categories\UseOnlyExistedModeCategrories\UseOnlyExistedWinSingleInstanceCategory.cs" />
+    <Compile Include="WinCounters\Categories\WinInstanceInMultiInstanceCategory.cs" />
+    <Compile Include="WinCounters\Categories\WinMultiInstanceCategory.cs" />
+    <Compile Include="WinCounters\Categories\WinSingleInstanceCategory.cs" />
+    <Compile Include="WinCounters\Counters\IWinCounterInitialization.cs" />
+    <Compile Include="WinCounters\Counters\WinAverageCountCounter.cs" />
+    <Compile Include="WinCounters\Counters\WinAverageTimeCounter.cs" />
+    <Compile Include="WinCounters\Counters\WinCounterDescriptor.cs" />
+    <Compile Include="WinCounters\Counters\WinElapsedTimeCounter.cs" />
+    <Compile Include="WinCounters\Counters\WinMomentTimeCounter.cs" />
+    <Compile Include="WinCounters\Counters\WinNumberOfItemsCounter.cs" />
+    <Compile Include="WinCounters\Counters\WinOperationsPerSecondCounter.cs" />
+    <Compile Include="WinCounters\Helpers\CategoryHelper.cs" />
+    <Compile Include="WinCounters\Helpers\CounterHelper.cs" />
+    <Compile Include="WinCounters\Helpers\WinCountersWorkingInfo.cs" />
+    <Compile Include="WinCounters\WinCategoryState.cs" />
+    <Compile Include="WinCounters\Categories\WinEmptyCategory.cs" />
+    <Compile Include="WinCounters\WinCounterFactory.cs" />
+    <Compile Include="WinCounters\WinCounterState.cs" />
+    <Compile Include="Helpers\CredentialsHelper.cs" />
+    <Compile Include="Exceptions\PerformanceCounterCreationException.cs" />
+    <Compile Include="Generic\Wrappers\CounterAutoInitialization\CounterPropertyInfoExtractor.cs" />
+    <Compile Include="Generic\Categories\MultiInstanceCategory.cs" />
+    <Compile Include="Generic\Categories\SingleInstanceCategory.cs" />
+    <Compile Include="Generic\Counters\CounterTypes.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="PerfCountersConfigHelpers\PerfCountersAppConfigSchema.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Qoollo.PerformanceCounters.csproj.nuspec" />
+    <None Include="Qoollo.PerformanceCounters.Config.nuspec" />
+    <None Include="PerfCountersConfigHelpers\PerfCountersAppConfigSample.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

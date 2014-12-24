@@ -1,0 +1,399 @@
+﻿<#
+	//@ template  debug="true" language="C#" 
+#>
+<#
+	//@ output extension=".txt" 
+#>
+<#
+	//@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="mscorlib" 
+#>
+<#
+	//@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="System.Core" 
+#>
+<#
+	//@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="System.Xml" 
+#>
+<#
+	//@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="System.Xml.Linq" 
+#>
+
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #> 
+<#@ import namespace="System.Xml" #> 
+<#@ import namespace="System.Xml.Linq" #> 
+
+<#
+	//@ includeForIntellisenseOnly processor="tangibleT4Editor"  file="ConfigCommonData.ttinclude" 
+#>
+
+
+<#+
+
+	public void GenerateSampleConfigFileXmlBased(Type tp, AppConfigGenerationParams parameters)
+    {
+		WriteSampleAppConfigXmlBased(tp, parameters.NamespaceName, parameters.AssemblyName, parameters.SectionName);
+    }
+
+
+
+
+
+			// Генерация примера конфига
+	private void WriteSampleAppConfigXmlBased(Type intType, string ns, string assembly, string sectionName)
+	{
+		XDocument doc = new XDocument();
+
+		XElement sectionElem = BuildInterfaceConfigElementXmlBased(intType, sectionName, new HashSet<Type>(), false);
+		//XNamespace targetNs = ns + "." + sectionName + "_NS";
+		//sectionElem.Name = targetNs + sectionElem.Name.LocalName;
+
+		doc.Add(
+			new XElement("configuration",
+				new XElement("configSections",
+					new XElement("section",
+						new XAttribute("name", sectionName),
+						new XAttribute("type", string.Format("{0}.{1}, {2}", ns, NameResolveHelper.GetConfigClassNameByIntName(intType), assembly)),
+						new XAttribute("allowExeDefinition", "MachineToApplication"),
+						new XAttribute("requirePermission", "false"))),
+
+				sectionElem));
+
+		this.WriteLine(doc.ToString().Replace(" xmlns=\"\"", ""));
+	}
+
+
+
+			// Генерация блока конфигурации по интерфейсу
+	private XElement BuildInterfaceConfigElementXmlBased(Type intType, string elementName, HashSet<Type> passedInterf, bool closeBranch)
+	{			
+		XElement result = new XElement(elementName);
+
+		HashSet<Type> localPassedInterf = new HashSet<Type>(passedInterf);
+		localPassedInterf.Add(intType);
+
+		if (passedInterf.Contains(intType))
+			closeBranch = true;
+
+
+		GenerationTypeInfo intTypeInfo = GenerationHelper.ExtractDataForType(intType);
+		if (intTypeInfo.IsMallformed)
+			throw new Exception("Bad type " + intType.Name);
+
+		// записываем свойства, разрешаемые как элементы
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType))
+		{
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null)
+				continue;
+
+			if (attribVal.IsMallformed)
+				throw new Exception("bad property " + prop.Name + ". Problem: " + attribVal.WhatsWrong);
+
+			if (!attribVal.CanBeUsed)
+				continue;
+			
+			
+			string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+			string defVal = NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(prop.PropertyType));
+			
+			if (attribVal.FixedStyle == ConfigPropertyStyle.XmlAttribute)
+			{
+				result.Add(new XAttribute(name, defVal));
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.Dictionary)
+			{
+				result.AddFirst(new XElement("add", new XAttribute("key", name), new XAttribute("value", defVal)));
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElement)
+			{
+				if (attribVal.TypeKind == GenerationTypeKind.SimpleType)
+				{
+					result.Add(new XElement(name, new XAttribute("value", defVal)));
+				}
+				else if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					if (!(closeBranch && !attribVal.Attrib.IsRequired))
+					{
+						var innerElem = BuildInterfaceConfigElementXmlBased(prop.PropertyType, name, localPassedInterf, closeBranch);
+						result.Add(innerElem);
+					}
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					CollectionRestrictionAttribute colRestr = attribVal.CollectionRestriction ?? new CollectionRestrictionAttribute();
+					if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+					{
+						XElement innerElem = BuildListConfigElementXmlBased(
+							GenerationHelper.GetListElementType(prop.PropertyType), 
+							colRestr.MinElementCount, colRestr.MaxElementCount,
+							name, false, false, localPassedInterf, closeBranch);
+
+						if (intTypeInfo.DefaultInternals != null &&
+							intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+                        {
+							result.Add(innerElem.Elements());
+                        }
+						else
+                        {
+							result.Add(innerElem);
+                        }
+					}
+					else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+					{
+						var innerElem = BuildDictionaryConfigElementXmlBased(
+							GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+							GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+							colRestr.MinElementCount, colRestr.MaxElementCount,
+							name, false, false, localPassedInterf, closeBranch);
+
+						if (intTypeInfo.DefaultInternals != null &&
+							intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+                        {
+							result.Add(innerElem.Elements());
+                        }
+						else
+                        {
+							result.Add(innerElem);
+                        }
+					}
+					else
+					{
+						throw new Exception("Unknown type");
+					}
+                }
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElementInjectedType)
+            {
+				if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					if (!(closeBranch && !attribVal.Attrib.IsRequired))
+					{
+						ConfigSubstituteTypeAttribute allSubstAttrib = null;
+						if (attribVal.Attrib.AllowInheritance)
+							allSubstAttrib = attribVal.PropTypeInfo.InheritanceTypeSubstitution[0];
+						else
+							allSubstAttrib = attribVal.PropTypeInfo.OwnTypeSubstitution;
+
+						string testName = null;
+						if (allSubstAttrib != null)
+							testName = NameResolveHelper.GetXmlNameByCSName(allSubstAttrib.OverrideTypeName, allSubstAttrib.SubType);
+						else
+							testName = NameResolveHelper.GetXmlNameByCSName(prop.PropertyType);
+
+
+						XElement innerElem = null;
+
+						if (attribVal.Attrib.AllowInheritance)
+							innerElem = BuildInterfaceConfigElementXmlBased(allSubstAttrib.SubType, testName, localPassedInterf, closeBranch); 
+						else
+							innerElem = BuildInterfaceConfigElementXmlBased(prop.PropertyType, testName, localPassedInterf, closeBranch); 
+
+						if (intTypeInfo.DefaultInternals != null &&
+							intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+                        {
+							result.Add(innerElem);
+                        }
+						else
+                        {
+							result.Add(new XElement(name, innerElem));
+                        }
+					}
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					CollectionRestrictionAttribute colRestr = attribVal.CollectionRestriction ?? new CollectionRestrictionAttribute();
+					if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+					{
+						var innerElem = BuildListConfigElementXmlBased(
+							GenerationHelper.GetListElementType(prop.PropertyType), 
+							colRestr.MinElementCount, colRestr.MaxElementCount,
+							name, true, attribVal.Attrib.AllowInheritance, localPassedInterf, closeBranch);
+
+						if (intTypeInfo.DefaultInternals != null &&
+							intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+                        {
+							result.Add(innerElem.Elements());
+                        }
+						else
+                        {
+							result.Add(innerElem);
+                        }
+					}
+					else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+					{
+						var innerElem = BuildDictionaryConfigElementXmlBased(
+							GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+							GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+							colRestr.MinElementCount, colRestr.MaxElementCount,
+							name, true, attribVal.Attrib.AllowInheritance, localPassedInterf, closeBranch);
+
+						if (intTypeInfo.DefaultInternals != null &&
+							intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+                        {
+							result.Add(innerElem.Elements());
+                        }
+						else
+                        {
+							result.Add(innerElem);
+                        }
+					}
+					else
+					{
+						throw new Exception("Unknown type");
+					}
+                }
+            }
+		}		
+	
+		return result;
+	}
+
+
+
+		// Генерация блока конфигурации для списка и массива
+	private XElement BuildListConfigElementXmlBased(Type elemType, uint minElemCount, uint maxElemCount, string elementName, bool injectedType, bool checkInheritance, HashSet<Type> passedInterf, bool closeBranch)
+	{
+		XElement result = new XElement(elementName);
+
+		if (closeBranch && minElemCount == 0)
+			return result;
+
+		var elemTypeInfo = GenerationHelper.ExtractDataForType(elemType);
+
+
+		if (injectedType && checkInheritance && GenerationHelper.IsComplexType(elemType))
+        {
+			uint curCnt = 0;
+
+			var allSubstAttrib = elemTypeInfo.InheritanceTypeSubstitution;
+
+			do
+            {
+				for (int i = 0; i < allSubstAttrib.Length && curCnt <= maxElemCount; i++)
+				{
+					var innerElem = BuildInterfaceConfigElementXmlBased(allSubstAttrib[i].SubType, 
+						NameResolveHelper.GetXmlNameByCSName(allSubstAttrib[i].OverrideTypeName, allSubstAttrib[i].SubType), 
+						passedInterf, closeBranch);
+
+					result.Add(innerElem);
+					curCnt++;
+				}
+            } while (curCnt < minElemCount);
+        }
+		else
+        {
+			string elemAddTextVal = "add";
+			if (injectedType && GenerationHelper.IsComplexType(elemType))
+				elemAddTextVal = NameResolveHelper.GetXmlNameByCSName(elemTypeInfo.OverrideTypeName, elemType);
+
+			for (int i = 0; i < Math.Min(Math.Max(2, minElemCount), maxElemCount); i++)
+			{
+				if (GenerationHelper.IsComplexType(elemType))
+				{
+					var innerElem = BuildInterfaceConfigElementXmlBased(elemType, elemAddTextVal, passedInterf, closeBranch);
+					result.Add(innerElem);
+				}
+				else if (GenerationHelper.IsSimpleType(elemType))
+				{
+					result.Add(new XElement("add", new XAttribute("value", NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(elemType)))));
+				}
+				else
+				{
+					throw new Exception("bad list element type");
+				}
+			}
+		}
+    
+		return result;
+	}
+
+
+
+			// Генерация блока конфигурации для словаря
+	private XElement BuildDictionaryConfigElementXmlBased(Type keyType, Type elemType, uint minElemCount, uint maxElemCount, string elementName, bool injectedType, bool checkInheritance, HashSet<Type> passedInterf, bool closeBranch)
+	{
+		if (!GenerationHelper.IsSimpleType(keyType))
+        {
+			throw new Exception("Bad Dictionary Key type");
+        }
+
+		XElement result = new XElement(elementName);
+
+		if (closeBranch && minElemCount == 0)
+			return result;
+
+		var keyTypeInfo = GenerationHelper.ExtractDataForType(keyType);
+		var elemTypeInfo = GenerationHelper.ExtractDataForType(elemType);
+
+
+		if (injectedType && checkInheritance && GenerationHelper.IsComplexType(elemType))
+        {
+			uint curCnt = 0;
+
+			var allSubstAttrib = elemTypeInfo.InheritanceTypeSubstitution;
+			
+			do
+            {
+				for (int i = 0; i < allSubstAttrib.Length && curCnt <= maxElemCount; i++)
+				{
+					XElement innerElem = BuildInterfaceConfigElementXmlBased(allSubstAttrib[i].SubType, 
+						NameResolveHelper.GetXmlNameByCSName(allSubstAttrib[i].OverrideTypeName, allSubstAttrib[i].SubType), 
+						passedInterf, closeBranch);
+
+					if (innerElem.Attribute("key") != null)
+						throw new Exception("Dictionary elements has attribute Key");
+
+					var oldAttr = innerElem.Attributes().ToArray();
+					innerElem.RemoveAttributes();
+					innerElem.Add(new XAttribute("key", NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(keyType))));
+					innerElem.Add(oldAttr);
+				
+					result.Add(innerElem);
+					curCnt++;
+				}
+			} while (curCnt < minElemCount);
+        }
+		else
+        {
+			string elemAddTextVal = "add";
+			if (injectedType && GenerationHelper.IsComplexType(elemType))
+				elemAddTextVal = NameResolveHelper.GetXmlNameByCSName(elemTypeInfo.OverrideTypeName, elemType);
+
+			for (int i = 0; i < Math.Min(Math.Max(2, minElemCount), maxElemCount); i++)
+			{
+				if (GenerationHelper.IsComplexType(elemType))
+				{
+					XElement innerElem = BuildInterfaceConfigElementXmlBased(elemType, elemAddTextVal, passedInterf, closeBranch);
+					
+					if (innerElem.Attribute("key") != null)
+						throw new Exception("Dictionary elements has attribute Key");
+
+					var oldAttr = innerElem.Attributes().ToArray();
+					innerElem.RemoveAttributes();
+					innerElem.Add(new XAttribute("key", NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(keyType))));
+					innerElem.Add(oldAttr);
+					
+					result.Add(innerElem);
+				}
+				else if (GenerationHelper.IsSimpleType(elemType))
+				{
+					result.Add(new XElement("add", 
+						new XAttribute("key", NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(keyType))),
+						new XAttribute("value", NameResolveHelper.GenericToPlainTypeName(TypeHelper.GetTypeName(elemType)))));
+				}
+				else
+				{
+					throw new Exception("bad dictionary value element type");
+				}
+			}
+        }
+
+		return result;
+	}
+
+
+#>

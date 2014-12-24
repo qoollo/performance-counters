@@ -1,0 +1,755 @@
+﻿<#
+	//@ template  debug="true" language="C#" 
+#>
+<#
+	//@ output extension=".txt" 
+#>
+
+<#
+	//@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="mscorlib" 
+#>
+<#
+	//@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="System.Core" 
+#>
+<#
+	//@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="System.Xml" 
+#>
+<#
+	//@ assemblyForIntellisenseOnly processor="tangibleT4Editor" Name="System.Xml.Linq" 
+#>
+
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections" #>
+<#@ import namespace="System.Collections.Generic" #> 
+<#@ import namespace="System.Xml" #> 
+<#@ import namespace="System.Xml.Linq" #> 
+
+<#
+	//@ includeForIntellisenseOnly processor="tangibleT4Editor"  file="ConfigCommonData.ttinclude" 
+#>
+
+<#+
+
+	public void GenerateConfigXSD(Type tp, AppConfigGenerationParams parameters)
+    {
+		WriteConfigXSD(tp, parameters.NamespaceName, parameters.AssemblyName, parameters.SectionName);
+    }
+
+
+
+
+
+
+	// Генерация XSD
+	private void WriteConfigXSD(Type intType, string ns, string assembly, string sectionName)
+    {
+		XDocument doc = new XDocument(new XDeclaration("1.0", "utf-8", "yes"));
+
+
+		XNamespace targetNs = ns + "." + sectionName + "_NS";
+		XNamespace xsdDefNs = @"http://www.w3.org/2001/XMLSchema";
+
+		XSDNamespaceCntr nsContainer = new XSDNamespaceCntr("tns:", targetNs, xsdDefNs);
+
+
+		XElement SchemaElem = new XElement(xsdDefNs + "schema",
+				new XAttribute(XNamespace.Xmlns + "tns", targetNs),
+				new XAttribute("elementFormDefault", "qualified"),
+				new XAttribute("targetNamespace", targetNs),
+				new XAttribute(XNamespace.Xmlns + "xs", xsdDefNs));
+
+		SchemaElem.Add(new XElement(xsdDefNs + "element",
+								new XAttribute("name", sectionName),
+								new XAttribute("type", nsContainer.TargetNsQual + NameResolveHelper.GetXsdTypeNameByCSName(intType))));
+
+		foreach (var tp in XSDGenerationTypeCollector.CollectAllTypesToImpl(intType))
+        {
+			XElement innerElem = null;
+			if (tp.IsEnum)
+				innerElem = BuildXSDEnumDeclaration(tp, nsContainer);
+			else
+				innerElem = BuildXSDTypeDeclaration(tp, nsContainer);
+
+			SchemaElem.Add(innerElem);
+        }
+
+		SchemaElem.Add(BuildDefaultDictionaryStyleXSDTypeDeclaration(nsContainer));
+		SchemaElem.Add(BuildCustomBoolXSDTypeDeclaration(nsContainer));
+
+		doc.Add(SchemaElem);
+
+		this.WriteLine(doc.Declaration.ToString());
+		this.WriteLine(doc.ToString());
+    }
+
+
+
+
+	private XElement BuildDefaultDictionaryStyleXSDTypeDeclaration(XSDNamespaceCntr nsContainer)
+    {
+		return new XElement(nsContainer.XsdDefaultNs + "complexType",
+					new XAttribute("name", NameResolveHelper.GetXsdDefaultAddTypeName()),
+					new XElement(nsContainer.XsdDefaultNs + "attribute",
+						new XAttribute("name", "key"), new XAttribute("type", "xs:string"), new XAttribute("use", "required")),
+					new XElement(nsContainer.XsdDefaultNs + "attribute",
+						new XAttribute("name", "value"), new XAttribute("type", "xs:string"), new XAttribute("use",  "required")));
+    }
+
+	private XElement BuildDictionaryStyleXSDTypeDeclaration(XSDNamespaceCntr nsContainer, string[] names)
+    {
+		XElement restriction = new XElement(nsContainer.XsdDefaultNs + "restriction", new XAttribute("base", "xs:string"));
+		foreach (var elem in names)
+        {
+			restriction.Add(new XElement(nsContainer.XsdDefaultNs + "enumeration", new XAttribute("value", elem)));
+        }
+
+		return new XElement(nsContainer.XsdDefaultNs + "complexType",
+					new XElement(nsContainer.XsdDefaultNs + "attribute",
+						new XAttribute("name", "key"), new XAttribute("use", "required"), 
+						new XElement(nsContainer.XsdDefaultNs + "simpleType", restriction)),
+					new XElement(nsContainer.XsdDefaultNs + "attribute",
+						new XAttribute("name", "value"), new XAttribute("type", "xs:string"), new XAttribute("use",  "required")));
+    }
+
+
+
+	private XElement BuildCustomBoolXSDTypeDeclaration(XSDNamespaceCntr nsContainer)
+    {
+		XElement result = new XElement(nsContainer.XsdDefaultNs + "simpleType");
+		result.Add(new XAttribute("name", NameResolveHelper.GetXsdCustomBoolTypeName()));
+
+		XElement restriction = new XElement(nsContainer.XsdDefaultNs + "restriction", new XAttribute("base", "xs:string"));
+		restriction.Add(new XElement(nsContainer.XsdDefaultNs + "enumeration", new XAttribute("value", "false")));
+		restriction.Add(new XElement(nsContainer.XsdDefaultNs + "enumeration", new XAttribute("value", "true")));
+
+		result.Add(restriction);
+		return result;
+    }
+
+
+	private XElement BuildXSDEnumDeclaration(Type intType, XSDNamespaceCntr nsContainer)
+    {
+		if (!intType.IsEnum)
+			throw new Exception("Type is not Enum");
+
+		XElement result = new XElement(nsContainer.XsdDefaultNs + "simpleType");
+		result.Add(new XAttribute("name", NameResolveHelper.GetXsdTypeNameByCSName(intType)));
+
+		XElement restriction = new XElement(nsContainer.XsdDefaultNs + "restriction", new XAttribute("base", "xs:string"));
+		foreach (var elem in Enum.GetNames(intType))
+        {
+			restriction.Add(new XElement(nsContainer.XsdDefaultNs + "enumeration", new XAttribute("value", elem)));
+        }
+
+
+		result.Add(restriction);
+		return result;
+    }
+
+
+	private XElement BuildXSDDescription(string descr, XSDNamespaceCntr nsContainer)
+    {
+		return new XElement(nsContainer.XsdDefaultNs + "annotation",
+				new XElement(nsContainer.XsdDefaultNs + "documentation", descr));
+    }
+
+
+	private XElement BuildXSDTypeDeclaration(Type intType, XSDNamespaceCntr nsContainer)
+    {
+		XElement result = new XElement(nsContainer.XsdDefaultNs + "complexType");
+		result.Add(new XAttribute("name", NameResolveHelper.GetXsdTypeNameByCSName(intType)));
+
+
+		XElement allElem = new XElement(nsContainer.XsdDefaultNs + "all");
+
+		GenerationTypeInfo intTypeInfo = GenerationHelper.ExtractDataForType(intType);
+		if (intTypeInfo.IsMallformed)
+			throw new Exception("Bad type " + intType.Name);
+		
+
+		// считаем свойства, разрешаемые в словарном стиле
+
+		int minDictionaryStyleCount = 0;
+		int maxDictionaryStyleCount = 0;
+		List<string> dictStyleNames = new List<string>();
+			
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType).Where(o => GenerationHelper.IsSimpleType(o.PropertyType)))
+		{
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null || !attribVal.CanBeUsed || attribVal.FixedStyle != ConfigPropertyStyle.Dictionary)
+				continue;
+
+			maxDictionaryStyleCount++;
+			if (attribVal.Attrib.IsRequired)
+				minDictionaryStyleCount++;
+
+			string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+			dictStyleNames.Add(name);
+		}
+
+		if (maxDictionaryStyleCount > 0)
+        {
+			var innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+								new XAttribute("name", "add"),
+								new XAttribute("minOccurs", minDictionaryStyleCount.ToString()),
+								new XAttribute("maxOccurs", maxDictionaryStyleCount.ToString()),
+								BuildDictionaryStyleXSDTypeDeclaration(nsContainer, dictStyleNames.ToArray()));
+
+			innerElem.AddFirst(BuildXSDDescription("Dictionary style property element", nsContainer));
+
+			allElem.Add(innerElem);
+
+			// В XSD 1.0 нельзя внутри all maxOccurs > 1.
+			// Заменяем на sequence
+			// Проблема решена в XSD 1.1
+			if (maxDictionaryStyleCount > 1)
+				allElem.Name = nsContainer.XsdDefaultNs + "sequence";
+        }
+
+				// записываем свойства, разрешаемые как элементы
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType))
+		{
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null)
+				continue;
+
+			if (attribVal.IsMallformed)
+				throw new Exception("bad property " + prop.Name);
+
+			if (!attribVal.CanBeUsed)
+				continue;
+			
+			
+			string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+			
+			if (attribVal.FixedStyle == ConfigPropertyStyle.XmlAttribute)
+			{
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.Dictionary)
+			{
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElement)
+			{
+				if (attribVal.TypeKind == GenerationTypeKind.SimpleType)
+				{
+					XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", name),
+							new XAttribute("minOccurs", attribVal.Attrib.IsRequired ? "1": "0"),
+							new XAttribute("maxOccurs", "1"),
+							new XElement(nsContainer.XsdDefaultNs + "complexType",
+								new XElement(nsContainer.XsdDefaultNs + "attribute",
+									new XAttribute("name", "value"), 
+									new XAttribute("type", NameResolveHelper.GetXsdSimpleTypeExt(nsContainer.TargetNsQual, prop.PropertyType)), 
+									new XAttribute("use", "required"))));
+
+					innerElem.AddFirst(BuildXSDDescription(attribVal.GetAnnotation(), nsContainer));
+					allElem.Add(innerElem);
+				}
+				else if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", name),
+							new XAttribute("minOccurs", attribVal.Attrib.IsRequired ? "1": "0"),
+							new XAttribute("maxOccurs", "1"),
+							new XAttribute("type", NameResolveHelper.GetXsdTypeNameByCSName(nsContainer.TargetNsQual, prop.PropertyType)));
+
+					innerElem.AddFirst(BuildXSDDescription(attribVal.GetAnnotation(), nsContainer));
+					allElem.Add(innerElem);
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					CollectionRestrictionAttribute colRestr = attribVal.CollectionRestriction ?? new CollectionRestrictionAttribute();
+					if (attribVal.TreatLike == GenerationTypeTreatLike.List)
+					{
+						XElement listElem = BuildXSDListConfigElement(
+							GenerationHelper.GetListElementType(prop.PropertyType), 
+							colRestr.MinElementCount, colRestr.MaxElementCount,
+							nsContainer, false, false);
+						
+						if (intTypeInfo.DefaultInternals != null &&
+							intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+						{
+							allElem.Name = listElem.Elements().First().Name;
+							allElem.Add(listElem.Elements().First().Elements());
+                        }
+						else
+                        {	
+							XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+								new XAttribute("name", name),
+								new XAttribute("minOccurs", attribVal.Attrib.IsRequired ? "1": "0"),
+								new XAttribute("maxOccurs", "1"),
+								listElem);
+
+							innerElem.AddFirst(BuildXSDDescription(attribVal.GetAnnotation(), nsContainer));
+							allElem.Add(innerElem);
+                        }
+					}
+					else if (attribVal.TreatLike == GenerationTypeTreatLike.Dictionary)
+					{
+						XElement[] dictElem = BuildXSDDictionaryConfigElement(
+									GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+									GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+									colRestr.MinElementCount, colRestr.MaxElementCount,
+									nsContainer, false, false);
+
+						if (intTypeInfo.DefaultInternals != null &&
+							intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+						{
+							allElem.Name = dictElem[0].Elements().First().Name;
+							allElem.Add(dictElem[0].Elements().First().Elements());
+                        }
+						else
+                        {	
+							XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+								new XAttribute("name", name),
+								new XAttribute("minOccurs", attribVal.Attrib.IsRequired ? "1": "0"),
+								new XAttribute("maxOccurs", "1"));
+
+							innerElem.AddFirst(BuildXSDDescription(attribVal.GetAnnotation(), nsContainer));
+							innerElem.Add(dictElem);
+							allElem.Add(innerElem);
+                        }
+					}
+					else
+					{
+						throw new Exception("Unknown type");
+					}
+                }
+			}
+			else if (attribVal.FixedStyle == ConfigPropertyStyle.XmlElementInjectedType)
+            {
+				if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", name),
+							new XAttribute("minOccurs", attribVal.Attrib.IsRequired ? "1": "0"),
+							new XAttribute("maxOccurs", "1"));
+
+					XElement innerComplexTypeElem = new XElement(nsContainer.XsdDefaultNs + "complexType");
+					
+					if (attribVal.Attrib.AllowInheritance)
+                    {
+						XElement choiceOfElem = new XElement(nsContainer.XsdDefaultNs + "choice",
+										new XAttribute("minOccurs", "0"),
+										new XAttribute("maxOccurs", "unbounded"));
+
+						var allSubstAttrib = attribVal.PropTypeInfo.InheritanceTypeSubstitution;
+						for (int i = 0; i < allSubstAttrib.Length; i++)
+						{
+							XElement realElem = new XElement(nsContainer.XsdDefaultNs + "element",
+										new XAttribute("name", NameResolveHelper.GetXmlNameByCSName(allSubstAttrib[i].OverrideTypeName, allSubstAttrib[i].SubType)),
+										new XAttribute("type", NameResolveHelper.GetXsdTypeNameByCSName(nsContainer.TargetNsQual, allSubstAttrib[i].SubType)));
+				
+							choiceOfElem.Add(realElem);
+						}
+
+						innerComplexTypeElem.Add(choiceOfElem);
+                    }
+					else
+                    {
+						string testName = NameResolveHelper.GetXmlNameByCSName(attribVal.PropTypeInfo.OverrideTypeName, prop.PropertyType);
+
+						XElement innerSeqElem = new XElement(nsContainer.XsdDefaultNs + "sequence");
+						XElement realElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", testName),
+							new XAttribute("minOccurs", "0"),
+							new XAttribute("maxOccurs", "unbounded"),
+							new XAttribute("type", NameResolveHelper.GetXsdTypeNameByCSName(nsContainer.TargetNsQual, prop.PropertyType)));
+				
+						innerSeqElem.Add(realElem);
+						innerComplexTypeElem.Add(innerSeqElem);
+                    }
+
+					if (intTypeInfo.DefaultInternals != null &&
+						intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+					{
+						allElem.Name = innerComplexTypeElem.Elements().First().Name;
+						allElem.Add(innerComplexTypeElem.Elements().First().Elements());
+                    }
+					else
+                    {
+						innerElem.AddFirst(BuildXSDDescription(attribVal.GetAnnotation(), nsContainer));
+						innerElem.Add(innerComplexTypeElem);
+						allElem.Add(innerElem);
+                    }
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					CollectionRestrictionAttribute colRestr = attribVal.CollectionRestriction ?? new CollectionRestrictionAttribute();
+
+					if (attribVal.TreatLike == GenerationTypeTreatLike.List)
+					{
+						XElement listElem = BuildXSDListConfigElement(
+								GenerationHelper.GetListElementType(prop.PropertyType), 
+								colRestr.MinElementCount, colRestr.MaxElementCount,
+								nsContainer, true, attribVal.Attrib.AllowInheritance);
+
+						if (intTypeInfo.DefaultInternals != null &&
+							intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+						{
+							allElem.Name = listElem.Elements().First().Name;
+							allElem.Add(listElem.Elements().First().Elements());
+                        }
+						else
+                        {					
+							XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+								new XAttribute("name", name),
+								new XAttribute("minOccurs", attribVal.Attrib.IsRequired ? "1": "0"),
+								new XAttribute("maxOccurs", "1"),
+								listElem);
+
+							innerElem.AddFirst(BuildXSDDescription(attribVal.GetAnnotation(), nsContainer));
+							allElem.Add(innerElem);
+                        }
+					}
+					else if (attribVal.TreatLike == GenerationTypeTreatLike.Dictionary)
+					{
+						XElement[] dictElem = BuildXSDDictionaryConfigElement(
+									GenerationHelper.GetDictionaryKeyType(prop.PropertyType),
+									GenerationHelper.GetDictionaryValueType(prop.PropertyType),
+									colRestr.MinElementCount, colRestr.MaxElementCount,
+									nsContainer, true, attribVal.Attrib.AllowInheritance);
+						
+						if (intTypeInfo.DefaultInternals != null &&
+							intTypeInfo.DefaultInternals.PropertyName == prop.Name)
+                        {
+							allElem.Name = dictElem[0].Elements().First().Name;
+							allElem.Add(dictElem[0].Elements().First().Elements());
+                        }
+						else
+                        {
+							XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+								new XAttribute("name", name),
+								new XAttribute("minOccurs", attribVal.Attrib.IsRequired ? "1": "0"),
+								new XAttribute("maxOccurs", "1"));
+
+
+							innerElem.AddFirst(BuildXSDDescription(attribVal.GetAnnotation(), nsContainer));
+							innerElem.Add(dictElem);
+							allElem.Add(innerElem);
+                        }
+					}
+					else
+					{
+						throw new Exception("Unknown type");
+					}
+                }
+            }
+		}	
+
+		if (allElem.HasElements)
+			result.Add(allElem);
+
+
+			// записываем свойства, разрешаемые в качестве атрибутов
+		foreach (var prop in TypeHelper.GetPropertiesCascaded(intType).Where(o => GenerationHelper.IsSimpleType(o.PropertyType)))
+		{
+			var attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+			if (attribVal == null || !attribVal.CanBeUsed || attribVal.FixedStyle != ConfigPropertyStyle.XmlAttribute)
+				continue;
+
+			string name = attribVal.Attrib.OverridedName ?? NameResolveHelper.GetXmlNameByCSName(prop.Name);
+			
+			var attribElem = new XElement(nsContainer.XsdDefaultNs + "attribute",
+								new XAttribute("name", name),
+								new XAttribute("type", NameResolveHelper.GetXsdSimpleTypeExt(nsContainer.TargetNsQual, prop.PropertyType)),
+								new XAttribute("use", attribVal.Attrib.IsRequired ? "required" : "optional"));
+			if (attribVal.Attrib.DefaultValue != null && !attribVal.Attrib.IsRequired)
+				attribElem.Add(new XAttribute("default", attribVal.Attrib.DefaultValue));
+
+			attribElem.Add(BuildXSDDescription(attribVal.GetAnnotation(), nsContainer));
+
+			result.Add(attribElem);
+		}
+
+
+
+		return result;
+    }
+
+
+			// Генерация блока конфигурации для списка и массива
+	private XElement BuildXSDListConfigElement(Type elemType, uint minElemCount, uint maxElemCount, XSDNamespaceCntr nsContainer, bool injectedType, bool checkInheritance)
+	{
+		var elemTypeInfo = GenerationHelper.ExtractDataForType(elemType);
+
+		XElement seq = new XElement(nsContainer.XsdDefaultNs + "sequence");
+
+
+		if (injectedType && checkInheritance && GenerationHelper.IsComplexType(elemType))
+        {
+			XElement choiceOfElem = new XElement(nsContainer.XsdDefaultNs + "choice",
+							new XAttribute("minOccurs", minElemCount.ToString()),
+							new XAttribute("maxOccurs", maxElemCount == uint.MaxValue ? "unbounded" : maxElemCount.ToString()));
+
+			var allSubstAttrib = elemTypeInfo.InheritanceTypeSubstitution;
+			for (int i = 0; i < allSubstAttrib.Length; i++)
+			{
+				XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", NameResolveHelper.GetXmlNameByCSName(allSubstAttrib[i].OverrideTypeName, allSubstAttrib[i].SubType)),
+							new XAttribute("type", NameResolveHelper.GetXsdTypeNameByCSName(nsContainer.TargetNsQual, allSubstAttrib[i].SubType)));
+				
+				choiceOfElem.Add(innerElem);
+			}
+
+			seq.Add(choiceOfElem);
+        }
+		else
+		{
+			string elemAddTextVal = "add";
+			if (injectedType && GenerationHelper.IsComplexType(elemType))
+				elemAddTextVal = NameResolveHelper.GetXmlNameByCSName(elemTypeInfo.OverrideTypeName, elemType);
+
+			if (GenerationHelper.IsComplexType(elemType))
+			{
+				XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", elemAddTextVal),
+							new XAttribute("minOccurs", minElemCount.ToString()),
+							new XAttribute("maxOccurs", maxElemCount == uint.MaxValue ? "unbounded" : maxElemCount.ToString()),
+							new XAttribute("type", NameResolveHelper.GetXsdTypeNameByCSName(nsContainer.TargetNsQual, elemType)));
+				
+				seq.Add(innerElem);
+			}
+			else if (GenerationHelper.IsSimpleType(elemType))
+			{
+				XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", "add"),
+							new XAttribute("minOccurs", minElemCount.ToString()),
+							new XAttribute("maxOccurs", maxElemCount == uint.MaxValue ? "unbounded" : maxElemCount.ToString()),
+							new XElement(nsContainer.XsdDefaultNs + "complexType",
+								new XElement(nsContainer.XsdDefaultNs + "attribute",
+									new XAttribute("name", "value"), 
+									new XAttribute("type", NameResolveHelper.GetXsdSimpleTypeExt(nsContainer.TargetNsQual, elemType)), 
+									new XAttribute("use", "required"))));
+				
+				seq.Add(innerElem);
+			}
+			else
+			{
+				throw new Exception("bad list element type");
+			}
+		}
+
+		XElement result = new XElement(nsContainer.XsdDefaultNs + "complexType", seq);
+		return result;
+	}
+
+
+
+
+				// Генерация блока конфигурации для словаря
+	private XElement[] BuildXSDDictionaryConfigElement(Type keyType, Type elemType, uint minElemCount, uint maxElemCount, XSDNamespaceCntr nsContainer, bool injectedType, bool checkInheritance)
+	{
+		if (!GenerationHelper.IsSimpleType(keyType))
+        {
+			throw new Exception("Bad Dictionary Key type");
+        }
+
+		var keyTypeInfo = GenerationHelper.ExtractDataForType(keyType);
+		var elemTypeInfo = GenerationHelper.ExtractDataForType(elemType);
+
+		XElement seq = new XElement(nsContainer.XsdDefaultNs + "sequence");
+		
+		
+
+		if (injectedType && checkInheritance && GenerationHelper.IsComplexType(elemType))
+        {
+			XElement choiceOfElem = new XElement(nsContainer.XsdDefaultNs + "choice",
+							new XAttribute("minOccurs", minElemCount.ToString()),
+							new XAttribute("maxOccurs", maxElemCount == uint.MaxValue ? "unbounded" : maxElemCount.ToString()));
+
+			var allSubstAttrib = elemTypeInfo.InheritanceTypeSubstitution;
+			for (int i = 0; i < allSubstAttrib.Length; i++)
+			{
+				XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", NameResolveHelper.GetXmlNameByCSName(allSubstAttrib[i].OverrideTypeName, allSubstAttrib[i].SubType)),
+							new XElement(nsContainer.XsdDefaultNs + "complexType",
+								new XElement(nsContainer.XsdDefaultNs + "complexContent",
+									new XElement(nsContainer.XsdDefaultNs + "extension", 
+										new XAttribute("base", NameResolveHelper.GetXsdTypeNameByCSName(nsContainer.TargetNsQual, allSubstAttrib[i].SubType)),
+										new XElement(nsContainer.XsdDefaultNs + "attribute",
+											new XAttribute("name", "key"), 
+											new XAttribute("type", NameResolveHelper.GetXsdSimpleTypeExt(nsContainer.TargetNsQual, keyType)), 
+											new XAttribute("use", "required"))))));
+				
+				choiceOfElem.Add(innerElem);
+            }
+
+			seq.Add(choiceOfElem);
+        }
+		else
+        {
+			string elemAddTextVal = "add";
+			if (injectedType && GenerationHelper.IsComplexType(elemType))
+				elemAddTextVal = NameResolveHelper.GetXmlNameByCSName(elemTypeInfo.OverrideTypeName, elemType);
+
+			if (GenerationHelper.IsComplexType(elemType))
+			{
+				XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", elemAddTextVal),
+							new XAttribute("minOccurs", minElemCount.ToString()),
+							new XAttribute("maxOccurs", maxElemCount == uint.MaxValue ? "unbounded" : maxElemCount.ToString()),
+							new XElement(nsContainer.XsdDefaultNs + "complexType",
+								new XElement(nsContainer.XsdDefaultNs + "complexContent",
+									new XElement(nsContainer.XsdDefaultNs + "extension", 
+										new XAttribute("base", NameResolveHelper.GetXsdTypeNameByCSName(nsContainer.TargetNsQual, elemType)),
+										new XElement(nsContainer.XsdDefaultNs + "attribute",
+											new XAttribute("name", "key"), 
+											new XAttribute("type", NameResolveHelper.GetXsdSimpleTypeExt(nsContainer.TargetNsQual, keyType)), 
+											new XAttribute("use", "required"))))));
+				
+				seq.Add(innerElem);
+			}
+			else if (GenerationHelper.IsSimpleType(elemType))
+			{
+				XElement innerElem = new XElement(nsContainer.XsdDefaultNs + "element",
+							new XAttribute("name", elemAddTextVal),
+							new XAttribute("minOccurs", minElemCount.ToString()),
+							new XAttribute("maxOccurs", maxElemCount == uint.MaxValue ? "unbounded" : maxElemCount.ToString()),
+							new XElement(nsContainer.XsdDefaultNs + "complexType",
+								new XElement(nsContainer.XsdDefaultNs + "attribute",
+									new XAttribute("name", "key"), 
+									new XAttribute("type", NameResolveHelper.GetXsdSimpleTypeExt(nsContainer.TargetNsQual, keyType)), 
+									new XAttribute("use", "required")),
+								new XElement(nsContainer.XsdDefaultNs + "attribute",
+									new XAttribute("name", "value"), 
+									new XAttribute("type", NameResolveHelper.GetXsdSimpleTypeExt(nsContainer.TargetNsQual, elemType)), 
+									new XAttribute("use", "required"))));
+				
+				seq.Add(innerElem);
+			}
+			else
+			{
+				throw new Exception("bad dictionary value element type");
+			}
+        }
+
+
+		XElement uniqueConstrElem = new XElement(nsContainer.XsdDefaultNs + "key",
+				new XAttribute("name", "dictKeyUniq_" + GenerationHelper.GenerateRandomUniqName()),
+				new XElement(nsContainer.XsdDefaultNs + "selector", new XAttribute("xpath", "./*")),
+				new XElement(nsContainer.XsdDefaultNs + "field", new XAttribute("xpath", "@key")));
+
+
+		XElement result = new XElement(nsContainer.XsdDefaultNs + "complexType", seq);
+		return new XElement[] { result, uniqueConstrElem };
+	}
+
+
+
+
+	// ==============================================================
+
+	class XSDNamespaceCntr
+    {
+		public XSDNamespaceCntr(string targetNsQual, XNamespace targetNs, XNamespace defaultNs)
+        {
+			TargetNsQual = targetNsQual;
+			TargetNs = targetNs;
+			XsdDefaultNs = defaultNs;
+        }
+
+		public string TargetNsQual {get; private set;}
+		public XNamespace TargetNs {get; private set;}
+		public XNamespace XsdDefaultNs {get; private set;}
+    }
+
+
+
+
+
+
+	class XSDGenerationTypeCollector
+    {
+		private static void AnalizeTypes(Type rootTp, HashSet<Type> col)
+        {
+			if (!GenerationHelper.IsComplexType(rootTp))
+				return;
+
+
+			if (col.Contains(rootTp))
+				return;
+			col.Add(rootTp);
+
+			foreach (var prop in TypeHelper.GetPropertiesCascaded(rootTp))
+            {
+				PropertyGenerationInfo attribVal = GenerationHelper.ExtractDataForGoodProp(prop);
+				if (attribVal == null)
+					continue;
+
+				if (attribVal.IsMallformed)
+					throw new Exception("bad property " + prop.Name);
+
+				if (!attribVal.CanBeUsed)
+					continue;
+
+				if (attribVal.TypeKind == GenerationTypeKind.SimpleType)
+                {
+					if (prop.PropertyType.IsEnum)
+						col.Add(prop.PropertyType);
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.ComplexType)
+                {
+					AnalizeTypes(prop.PropertyType, col);
+
+					if (attribVal.Attrib.AllowInheritance)
+                    {
+						var tps = GenerationHelper.GetCfgSubstituteTypeAttribInit(prop.PropertyType);
+						foreach (var elemAttr in tps)
+							AnalizeTypes(elemAttr.SubType, col);
+                    }
+                }
+				else if (attribVal.TypeKind == GenerationTypeKind.SpecialProcessingType)
+                {
+					if (GenerationHelper.IsTreatLikeList(prop.PropertyType))
+                    {
+						var elemTp = GenerationHelper.GetListElementType(prop.PropertyType);
+						if (GenerationHelper.IsComplexType(elemTp))
+                        {
+							AnalizeTypes(elemTp, col);
+							if (attribVal.Attrib.AllowInheritance)
+							{
+								var tps = GenerationHelper.GetCfgSubstituteTypeAttribInit(elemTp);
+								foreach (var elemAttr in tps)
+									AnalizeTypes(elemAttr.SubType, col);
+							}
+                        }
+                    }
+					else if (GenerationHelper.IsTreatLikeDictionary(prop.PropertyType))
+                    {
+						var elemTp = GenerationHelper.GetDictionaryValueType(prop.PropertyType);
+						if (GenerationHelper.IsComplexType(elemTp))
+                        {
+							AnalizeTypes(elemTp, col);
+							if (attribVal.Attrib.AllowInheritance)
+							{
+								var tps = GenerationHelper.GetCfgSubstituteTypeAttribInit(elemTp);
+								foreach (var elemAttr in tps)
+									AnalizeTypes(elemAttr.SubType, col);
+							}
+                        }
+                    }
+					else
+                    {
+						throw new Exception("unknown special type");
+                    }
+                }
+            }
+        }
+
+		public static List<Type> CollectAllTypesToImpl(Type rootTp)
+        {
+			HashSet<Type> col = new HashSet<Type>();
+
+			AnalizeTypes(rootTp, col);
+
+			return col.ToList();
+        }
+    }
+#>
+
+
+

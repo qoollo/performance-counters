@@ -11,29 +11,34 @@ namespace TestProject
 {
     internal class PerfCounters: Qoollo.PerformanceCounters.PerfCountersContainer
     {
-        private static TestSingleInstance _singleInstance = CreateNullCategoryWrapper<TestSingleInstance>();
-        private static TestMultiInstance _multiInstance = CreateNullCategoryWrapper<TestMultiInstance>();
+        private static TestSingleInstanceCategory _singleInstance = CreateNullCategoryWrapper<TestSingleInstanceCategory>();
+        private static TestMultiInstanceCategory _multiInstance = CreateNullCategoryWrapper<TestMultiInstanceCategory>();
 
-        public static TestSingleInstance TestSingle { get { return _singleInstance; } }
-        public static TestMultiInstance TestMulti { get { return _multiInstance; } }
+        public static TestSingleInstanceCategory TestSingle { get { return _singleInstance; } }
+        public static TestMultiInstanceCategory TestMulti { get { return _multiInstance; } }
 
 
         [PerfCountersInitializationMethod]
         public static void Init(CategoryWrapper parent)
         {
             var intermediate = parent.CreateEmptySubCategory("PerfCounterTest", "description");
-            _singleInstance = intermediate.CreateSubCategory<TestSingleInstance>();
-            _multiInstance = intermediate.CreateSubCategory<TestMultiInstance>();
+            _singleInstance = intermediate.CreateSubCategory<TestSingleInstanceCategory>();
+            _multiInstance = intermediate.CreateSubCategory<TestMultiInstanceCategory>();
 
             //InitializeCountersInAssembly(intermediate, typeof(int).Assembly);
         }
 
         // =================
 
-        public class TestSingleInstance: SingleInstanceCategoryWrapper
+        public class TestEmptyCategory: EmptyCategoryWrapper
         {
-            public TestSingleInstance()
-                : base("SingleInstance", "For tests")
+            public TestEmptyCategory() : base("EmptyCategory", "desc") { }
+        }
+
+        public class TestSingleInstanceCategory: SingleInstanceCategoryWrapper
+        {
+            public TestSingleInstanceCategory()
+                : base("SingleInstanceCategory", "For tests")
             {
             }
 
@@ -75,10 +80,10 @@ namespace TestProject
             public NumberOfItemsCounter Count { get; private set; }
         }
 
-        public class TestMultiInstance : MultiInstanceCategoryWrapper<TestInstance>
+        public class TestMultiInstanceCategory : MultiInstanceCategoryWrapper<TestInstance>
         {
-            public TestMultiInstance()
-                : base("MultiInstance", "For tests")
+            public TestMultiInstanceCategory()
+                : base("MultiInstanceCategory", "For tests")
             {
             }
         }
@@ -134,7 +139,7 @@ namespace TestProject
             Console.WriteLine("MomentTime = " + PerfCounters.TestSingle.MomentTime.CurrentValue.ToString());
             Console.WriteLine("Elapsed = " + PerfCounters.TestSingle.Elapsed.CurrentValue.ToString());
 
-            counterFactory.Dispose();
+            
 
 
 
@@ -148,6 +153,8 @@ namespace TestProject
                 PerfCounters.TestMulti[i.ToString()].Remove();
             }
 
+
+            counterFactory.Dispose();
             Console.ReadLine();
         }
     }

@@ -81,5 +81,11 @@ counterFactory.Dispose();
 
 
 ## Extended materials
+- [Factories, Categories, Counters](https://github.com/qoollo/performance-counters/wiki/Factories,-Categories,-Counters)
 - [Configuration](https://github.com/qoollo/performance-counters/wiki/Configuration)
 - [Usage](https://github.com/qoollo/performance-counters/wiki/Usage)
+
+
+## NuGet
+- [Qoollo.PerformanceCounters](https://www.nuget.org/packages/Qoollo.PerformanceCounters)
+- [Qoollo.PerformanceCounters.Config](https://www.nuget.org/packages/Qoollo.PerformanceCounters.Config)

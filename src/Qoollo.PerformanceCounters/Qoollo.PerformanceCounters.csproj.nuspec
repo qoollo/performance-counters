@@ -13,7 +13,7 @@
     <description>Library for collecting and tracking performance metrics in your .NET applications.</description>
     <releaseNotes>v2.0</releaseNotes>
     <copyright>Copyright 2014</copyright>
-    <tags>Qoollo PerformanceCounters Performance Counters Perf Profiling</tags>
+    <tags>Qoollo PerformanceCounters PerformanceCounter PerfCounters Performance Perf Counters Counter Health Profiling Monitoring perfmon</tags>
     <references>
       <reference file="$id$.dll" />
     </references>

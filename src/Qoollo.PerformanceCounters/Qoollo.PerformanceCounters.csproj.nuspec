@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>$id$</id>
-    <version>2.0.0</version>
+    <version>$version$</version>
     <title>Qoollo.PerformanceCounters</title>
     <authors>Qoollo</authors>
     <owners>Qoollo</owners>

@@ -64,7 +64,7 @@ namespace Qoollo.PerformanceCounters
         /// </summary>
         /// <param name="name">Имя категории</param>
         /// <param name="description">Описание категории</param>
-        protected MultiInstanceCategoryWrapper(string name, string description)
+        protected internal MultiInstanceCategoryWrapper(string name, string description)
             : base(name, description)
         {
             _instances = new ConcurrentDictionary<string, T>();
@@ -73,7 +73,7 @@ namespace Qoollo.PerformanceCounters
         /// <summary>
         /// Конструктор MultiInstanceCategoryWrapper
         /// </summary>
-        protected MultiInstanceCategoryWrapper()
+        protected internal MultiInstanceCategoryWrapper()
         {
             _instances = new ConcurrentDictionary<string, T>();
             _counters = CounterPropertyInfoExtractor.GetContainerCounterProperties(typeof(T));

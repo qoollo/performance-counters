@@ -190,6 +190,37 @@ namespace Qoollo.PerformanceCounters
         }
 
         /// <summary>
+        /// Создание обёртки для простой категории
+        /// </summary>
+        /// <typeparam name="T">Тип категории</typeparam>
+        /// <param name="name">Имя категории</param>
+        /// <param name="description">Описание категории</param>
+        /// <returns>Созданная обёртка</returns>
+        public T CreateSingleInstanceSubCategory<T>(string name, string description) where T : SingleInstanceCategoryWrapper, new()
+        {
+            var wrapper = new T();
+            wrapper.SetNameDescription(name, description);
+            var single = _category.CreateSingleInstanceSubCategory(wrapper.Name, wrapper.Description);
+            wrapper.Init(single);
+            return wrapper;
+        }
+
+        /// <summary>
+        /// Создание обёртки для категории с несколькими инстансами (см. также CreateSubCategory)
+        /// </summary>
+        /// <typeparam name="TInst">Тип инстанса</typeparam>
+        /// <param name="name">Имя категории</param>
+        /// <param name="description">Описание категории</param>
+        /// <returns>Созданная обёртка</returns>
+        public MultiInstanceCategoryWrapper<TInst> CreateMultiInstanceSubCategory<TInst>(string name, string description) where TInst: InstanceInMultiInstanceCategoryWrapper, new()
+        {
+            MultiInstanceCategoryWrapper<TInst> wrapper = new MultiInstanceCategoryWrapper<TInst>(name, description);
+            var multi = _category.CreateMultiInstanceSubCategory(wrapper.Name, wrapper.Description);
+            wrapper.Init(multi);
+            return wrapper;
+        }
+
+        /// <summary>
         /// Освободить ресурсы
         /// </summary>
         /// <param name="isUserCall">Вызвано ли явно</param>

@@ -19,6 +19,13 @@ namespace Qoollo.PerformanceCounters
             : base(name, description, CategoryTypes.MultiInstance)
         {
         }
+        /// <summary>
+        /// Конструктор MultiInstanceCategoryWrapper
+        /// </summary>
+        internal MultiInstanceCategoryWrapper()
+            : base(CategoryTypes.MultiInstance)
+        {
+        }
 
         /// <summary>
         /// Описатели свойств счётчиков для инстансов
@@ -59,6 +66,14 @@ namespace Qoollo.PerformanceCounters
         /// <param name="description">Описание категории</param>
         protected MultiInstanceCategoryWrapper(string name, string description)
             : base(name, description)
+        {
+            _instances = new ConcurrentDictionary<string, T>();
+            _counters = CounterPropertyInfoExtractor.GetContainerCounterProperties(typeof(T));
+        }
+        /// <summary>
+        /// Конструктор MultiInstanceCategoryWrapper
+        /// </summary>
+        protected MultiInstanceCategoryWrapper()
         {
             _instances = new ConcurrentDictionary<string, T>();
             _counters = CounterPropertyInfoExtractor.GetContainerCounterProperties(typeof(T));

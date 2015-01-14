@@ -47,6 +47,16 @@ namespace Qoollo.PerformanceCounters
             Name = name;
             Description = description;
         }
+        /// <summary>
+        /// Конструктор CategoryWrapper
+        /// </summary>
+        /// <param name="type">Тип категории</param>
+        internal CategoryWrapper(CategoryTypes type)
+        {
+            Type = type;
+            Name = this.GetType().FullName;
+            Description = Name;
+        }
 
 
 
@@ -65,6 +75,22 @@ namespace Qoollo.PerformanceCounters
         /// </summary>
         public CategoryTypes Type { get; private set; }
 
+
+        /// <summary>
+        /// Замена имени и описания
+        /// </summary>
+        /// <param name="name">Имя</param>
+        /// <param name="description">Описание</param>
+        internal void SetNameDescription(string name, string description)
+        {
+            if (name == null)
+                throw new ArgumentNullException("name");
+            if (description == null)
+                throw new ArgumentNullException("description");
+
+            Name = name;
+            Description = description;
+        }
 
         /// <summary>
         /// Внутренний метод инициализации
@@ -106,11 +132,14 @@ namespace Qoollo.PerformanceCounters
         /// и должны быть помечены атрибутами CounterAttributes
         /// </summary>
         /// <typeparam name="T">Тип обёртки</typeparam>
+        /// <param name="name">Имя категории</param>
+        /// <param name="description">Описание</param>
         /// <returns>Созданная обёртка</returns>
         /// <exception cref="InvalidCounterDefinitionException">При неверном описании счётчика в обёртке</exception>
-        public T CreateSubCategory<T>() where T : CategoryWrapper, new()
+        public T CreateSubCategory<T>(string name, string description) where T : CategoryWrapper, new()
         {
             var wrapper = new T();
+            wrapper.SetNameDescription(name ?? wrapper.Name, description ?? wrapper.Description);
 
             switch (wrapper.Type)
             {
@@ -131,6 +160,19 @@ namespace Qoollo.PerformanceCounters
             }
 
             return wrapper;
+        }
+
+        /// <summary>
+        /// Создание обертки вложенной категории счетчиков вместе со всеми счетчиками.
+        /// Счетчики должны быть одного из типов счетчиков
+        /// и должны быть помечены атрибутами CounterAttributes
+        /// </summary>
+        /// <typeparam name="T">Тип обёртки</typeparam>
+        /// <returns>Созданная обёртка</returns>
+        /// <exception cref="InvalidCounterDefinitionException">При неверном описании счётчика в обёртке</exception>
+        public T CreateSubCategory<T>() where T : CategoryWrapper, new()
+        {
+            return CreateSubCategory<T>(null, null);
         }
 
         /// <summary>

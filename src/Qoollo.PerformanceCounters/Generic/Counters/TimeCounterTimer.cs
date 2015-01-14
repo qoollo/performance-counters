@@ -112,9 +112,8 @@ namespace Qoollo.PerformanceCounters
         /// <summary>
         /// Остановка таймера и фиксация измерения
         /// </summary>
-        void IDisposable.Dispose()
+        public void Dispose()
         {
-            Pause();
             Complete();
         }
 

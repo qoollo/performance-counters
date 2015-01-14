@@ -17,6 +17,21 @@ namespace Qoollo.PerformanceCounters.NullCounters
         private static readonly object _syncObj = new object();
 
         /// <summary>
+        /// Creates NullCounterFactory singleton instance
+        /// </summary>
+        private static void CreateInstance()
+        {
+            if (_instance == null)
+            {
+                lock (_syncObj)
+                {
+                    if (_instance == null)
+                        _instance = new NullCounterFactory();
+                }
+            }
+        }
+
+        /// <summary>
         /// Инстанс фабрики
         /// </summary>
         public static NullCounterFactory Instance
@@ -24,13 +39,7 @@ namespace Qoollo.PerformanceCounters.NullCounters
             get
             {
                 if (_instance == null)
-                {
-                    lock (_syncObj)
-                    {
-                        if (_instance == null)
-                            _instance = new NullCounterFactory();
-                    }
-                }
+                    CreateInstance();
                 return _instance;
             }
         }

@@ -22,6 +22,13 @@ namespace Qoollo.PerformanceCounters
             : base(name, description, CategoryTypes.Empty)
         {
         }
+        /// <summary>
+        /// Конструктор EmptyCategoryWrapper
+        /// </summary>
+        public EmptyCategoryWrapper()
+            : base(CategoryTypes.Empty)
+        {
+        }
 
 
         /// <summary>

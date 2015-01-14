@@ -20,6 +20,13 @@ namespace Qoollo.PerformanceCounters
             : base(name, description, CategoryTypes.SingleInstance)
         {
         }
+        /// <summary>
+        /// Конструктор SingleInstanceCategoryWrapper
+        /// </summary>
+        protected SingleInstanceCategoryWrapper()
+            : base(CategoryTypes.SingleInstance)
+        {
+        }
 
 
         /// <summary>

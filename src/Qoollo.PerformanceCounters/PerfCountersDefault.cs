@@ -12,6 +12,7 @@ namespace Qoollo.PerformanceCounters
     public static class PerfCountersDefault
     {
         private static CounterFactory _default;
+        private static SingleInstanceCategory _defaultCategory;
         private static readonly object _syncObj = new object();
 
 
@@ -23,6 +24,37 @@ namespace Qoollo.PerformanceCounters
             get { return NullCounters.NullCounterFactory.Instance; }
         }
 
+        /// <summary>
+        /// Creates DefaultFactory singleton
+        /// </summary>
+        private static void CreateDefaultFactory()
+        {
+            if (_default == null)
+            {
+                lock (_syncObj)
+                {
+                    if (_default == null)
+                        _default = new InternalCounters.InternalCounterFactory();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates DefaultCategory from DefaultFactory
+        /// </summary>
+        private static void CreateDefaultCategory()
+        {
+            if (_defaultCategory == null)
+            {
+                lock (_syncObj)
+                {
+                    if (_default == null)
+                        _default = new InternalCounters.InternalCounterFactory();
+                    if (_defaultCategory == null)
+                        _defaultCategory = _default.CreateSingleInstanceCategory("DefaultCategory", "Default category");
+                }
+            }
+        }
 
         /// <summary>
         /// Инстанс фабрики счётчиков.
@@ -33,14 +65,22 @@ namespace Qoollo.PerformanceCounters
             get
             {
                 if (_default == null)
-                {
-                    lock (_syncObj)
-                    {
-                        if (_default == null)
-                            _default = new InternalCounters.InternalCounterFactory();
-                    }
-                }
+                    CreateDefaultFactory();
                 return _default;
+            }
+        }
+
+        /// <summary>
+        /// Default category to create counters in place. 
+        /// Be careful: some CounterFactories are not support this approach.
+        /// </summary>
+        public static SingleInstanceCategory DefaultCategory
+        {
+            get
+            {
+                if (_defaultCategory == null)
+                    CreateDefaultCategory();
+                return _defaultCategory;
             }
         }
 
@@ -58,6 +98,7 @@ namespace Qoollo.PerformanceCounters
             lock (_syncObj)
             {
                 oldVal = System.Threading.Interlocked.Exchange(ref _default, factory);
+                System.Threading.Interlocked.Exchange(ref _defaultCategory, null);
             }
 
             if (oldVal != null)

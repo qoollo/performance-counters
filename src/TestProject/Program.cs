@@ -22,7 +22,7 @@ namespace TestProject
         public static void Init(CategoryWrapper parent)
         {
             var intermediate = parent.CreateEmptySubCategory("PerfCounterTest", "description");
-            _singleInstance = intermediate.CreateSubCategory<TestSingleInstanceCategory>();
+            _singleInstance = intermediate.CreateSubCategory<TestSingleInstanceCategory>("SingleInstanceCategory", "for tests");
             _multiInstance = intermediate.CreateSubCategory<TestMultiInstanceCategory>();
 
             //InitializeCountersInAssembly(intermediate, typeof(int).Assembly);
@@ -37,11 +37,6 @@ namespace TestProject
 
         public class TestSingleInstanceCategory: SingleInstanceCategoryWrapper
         {
-            public TestSingleInstanceCategory()
-                : base("SingleInstanceCategory", "For tests")
-            {
-            }
-
             protected override void AfterInit()
             {
                 this.ResetAllCounters();
@@ -132,15 +127,19 @@ namespace TestProject
                 Thread.Sleep(rnd.Next(0, 10));
                 timer.Complete();
             }
+            for (int i = 0; i < 1000; i++)
+            {
+                using (PerfCounters.TestSingle.AvgTime.StartNew())
+                {
+                    Thread.Sleep(rnd.Next(0, 10));
+                }
+            }
             Console.WriteLine("AvgTime = " + PerfCounters.TestSingle.AvgTime.CurrentValue.ToString());
 
 
             momentTimer.Complete();
             Console.WriteLine("MomentTime = " + PerfCounters.TestSingle.MomentTime.CurrentValue.ToString());
             Console.WriteLine("Elapsed = " + PerfCounters.TestSingle.Elapsed.CurrentValue.ToString());
-
-            
-
 
 
 
@@ -155,6 +154,8 @@ namespace TestProject
 
 
             counterFactory.Dispose();
+
+            Console.WriteLine("========= Completed =========");
             Console.ReadLine();
         }
     }

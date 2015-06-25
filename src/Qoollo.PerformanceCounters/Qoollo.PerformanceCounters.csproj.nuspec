@@ -20,7 +20,7 @@
   </metadata>
   <files>
     <file src="bin\$configuration$\$id$.pdb" target="lib\net45\" />
-    <file src="PerfCountersConfigHelpers\PerfCountersAppConfigSchema.xsd" target="lib\net45\" />
-    <file src="PerfCountersConfigHelpers\PerfCountersAppConfigSample.config" target="lib\net45\" />
+    <file src="PerfCountersConfigHelpers\PerfCountersAppConfigSchema.xsd" target="." />
+    <file src="PerfCountersConfigHelpers\PerfCountersAppConfigSample.config" target="." />
   </files>
 </package>

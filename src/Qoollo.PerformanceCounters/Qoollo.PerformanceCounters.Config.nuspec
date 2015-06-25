@@ -3,7 +3,7 @@
   <metadata>
     <id>Qoollo.PerformanceCounters.Config</id>
     <title>Qoollo.PerformanceCounters configuration</title>
-    <version>2.0.1</version>
+    <version>2.1.0</version>
     <authors>Qoollo</authors>
     <owners>Qoollo</owners>
     <licenseUrl>https://github.com/qoollo/performance-counters/blob/master/LICENSE</licenseUrl>
@@ -11,7 +11,7 @@
     <!--<iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>-->
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>XSD schema and sample App.config for Qoollo.PerformanceCounters.</description>
-    <releaseNotes>v2.0</releaseNotes>
+    <releaseNotes>v2.1</releaseNotes>
     <copyright>Copyright 2014</copyright>
     <tags>Qoollo PerformanceCounters Performance Counters Perf Config Schema</tags>
   </metadata>

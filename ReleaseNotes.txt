@@ -1,0 +1,7 @@
+v2.1.0 (25.06.2015)
+- Fixed bug when 'CategoryNamePrefix' in WinCounters was not taken into account
+- Small usablity improvements
+
+
+v2.0 (25.12.2014)
+Initial version

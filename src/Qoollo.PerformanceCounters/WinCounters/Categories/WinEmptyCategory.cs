@@ -29,7 +29,13 @@ namespace Qoollo.PerformanceCounters.WinCounters.Categories
             if (info == null)
                 throw new ArgumentNullException("info");
 
-            FullName = string.IsNullOrEmpty(rootName) ? name : rootName + "." + name;
+            if (string.IsNullOrEmpty(rootName))
+                FullName = name;
+            else if (string.IsNullOrEmpty(name))
+                FullName = rootName;
+            else
+                FullName = rootName + "." + name;
+
             _info = info;
 
             _state = WinCategoryState.Created;

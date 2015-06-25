@@ -93,7 +93,7 @@ namespace Qoollo.PerformanceCounters.WinCounters
                 prefer64BitCounters = true;
 
             _info = new WinCountersWorkingInfo(instMode, machineName, readOnlyCounters, prefer64BitCounters, existedInstancesTreatment);
-            _namePrefix = namePrefix != null ? namePrefix.TrimEnd('.') : null;
+            _namePrefix = namePrefix != null ? namePrefix.TrimEnd('.') : "";
             _state = WinCategoryState.Created;
             _childCategories = new List<Category>();
         }

@@ -93,7 +93,7 @@ namespace Qoollo.PerformanceCounters.WinCounters
                 prefer64BitCounters = true;
 
             _info = new WinCountersWorkingInfo(instMode, machineName, readOnlyCounters, prefer64BitCounters, existedInstancesTreatment);
-            _namePrefix = namePrefix;
+            _namePrefix = namePrefix != null ? namePrefix.TrimEnd('.') : null;
             _state = WinCategoryState.Created;
             _childCategories = new List<Category>();
         }
@@ -203,7 +203,7 @@ namespace Qoollo.PerformanceCounters.WinCounters
                 if (_childCategories.Any(o => o.Name == categoryName))
                     throw new DuplicateCategoryNameException("Category with the same name is already registered. Name: " + categoryName);
 
-                var res = CategoryHelper.CreateEmptyCategory(categoryName, categoryDescription, null, _info);
+                var res = CategoryHelper.CreateEmptyCategory(categoryName, categoryDescription, NamePrefix, _info);
                 _childCategories.Add(res);
                 return res;
             }
@@ -229,7 +229,7 @@ namespace Qoollo.PerformanceCounters.WinCounters
                 if (_childCategories.Any(o => o.Name == categoryName))
                     throw new DuplicateCategoryNameException("Category with the same name is already registered. Name: " + categoryName);
 
-                var res = CategoryHelper.CreateMultiInstanceCategory(categoryName, categoryDescription, null, _info);
+                var res = CategoryHelper.CreateMultiInstanceCategory(categoryName, categoryDescription, NamePrefix, _info);
                 _childCategories.Add(res);
                 return res;
             }
@@ -255,7 +255,7 @@ namespace Qoollo.PerformanceCounters.WinCounters
                 if (_childCategories.Any(o => o.Name == categoryName))
                     throw new DuplicateCategoryNameException("Category with the same name is already registered. Name: " + categoryName);
 
-                var res = CategoryHelper.CreateSingleInstanceCategory(categoryName, categoryDescription, null, _info);
+                var res = CategoryHelper.CreateSingleInstanceCategory(categoryName, categoryDescription, NamePrefix, _info);
                 _childCategories.Add(res);
                 return res;
             }

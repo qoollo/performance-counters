@@ -9,11 +9,11 @@
     <licenseUrl>https://github.com/qoollo/performance-counters/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/qoollo/performance-counters</projectUrl>
     <!--<iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>-->
-    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Library for collecting and tracking performance metrics in your .NET applications.</description>
     <releaseNotes>v2.0</releaseNotes>
     <copyright>Copyright 2014</copyright>
-    <tags>Qoollo PerformanceCounters PerformanceCounter PerfCounters Performance Perf Counters Counter Health Profiling Monitoring perfmon</tags>
+    <tags>Qoollo PerformanceCounters PerformanceCounter PerfCounters Performance Perf Counters Counter Health Profiling Monitoring perfmon Graphite</tags>
     <references>
       <reference file="$id$.dll" />
     </references>

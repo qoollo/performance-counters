@@ -3,7 +3,7 @@
   <metadata>
     <id>Qoollo.PerformanceCounters.Config</id>
     <title>Qoollo.PerformanceCounters configuration</title>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
     <authors>Qoollo</authors>
     <owners>Qoollo</owners>
     <licenseUrl>https://github.com/qoollo/performance-counters/blob/master/LICENSE</licenseUrl>

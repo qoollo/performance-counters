@@ -1,3 +1,7 @@
+v2.1.1 (30.03.2016)
+- Escaping points and spaces in Instance and Counter names for Graphite counters
+- TimeCounterTimer: group completion support
+
 v2.1.0 (25.06.2015)
 - Fixed bug when 'CategoryNamePrefix' in WinCounters was not taken into account
 - Small usablity improvements

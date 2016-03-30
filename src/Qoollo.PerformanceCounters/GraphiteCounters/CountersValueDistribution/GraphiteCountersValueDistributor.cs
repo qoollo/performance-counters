@@ -116,7 +116,7 @@ namespace Qoollo.PerformanceCounters.GraphiteCounters.CountersValueDistribution
         {
             string newPrefix = prefix;
             if (!string.IsNullOrEmpty(instance.InstanceName))
-                newPrefix = prefix + "." + instance.InstanceName;
+                newPrefix = prefix + "." + EscapeName(instance.InstanceName);
 
             foreach (var counter in instance.Counters)
                 result.Add(ConvertCounterData(newPrefix, counter));
@@ -126,7 +126,7 @@ namespace Qoollo.PerformanceCounters.GraphiteCounters.CountersValueDistribution
         /// </summary>
         private GraphiteCounterData ConvertCounterData(string prefix, Counter counter)
         {
-            string name = prefix + "." + counter.Name;
+            string name = prefix + "." + EscapeName(counter.Name);
 
             switch (counter.Type)
             {
@@ -145,6 +145,16 @@ namespace Qoollo.PerformanceCounters.GraphiteCounters.CountersValueDistribution
                 default:
                     throw new InvalidProgramException("Unknown counter type: " + counter.Type.ToString());
             }
+        }
+
+        /// <summary>
+        /// Заменяет запрещённые сиволы в именах инстансов и счётчиков
+        /// </summary>
+        /// <param name="name">Искходное имя</param>
+        /// <returns>Скорректированное имя</returns>
+        private static string EscapeName(string name)
+        {
+            return name.Replace(' ', '_').Replace('.', '_');
         }
     }
 }

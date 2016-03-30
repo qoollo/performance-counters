@@ -110,6 +110,27 @@ namespace Qoollo.PerformanceCounters
         }
 
         /// <summary>
+        /// Зафиксировать текущее измерение после выполнения нескольких операций
+        /// </summary>
+        /// <param name="numberOfOperations">Число выполненных операций</param>
+        public void Complete(int numberOfOperations)
+        {
+            if (numberOfOperations < 0)
+                throw new ArgumentOutOfRangeException("numberOfOperations");
+
+            if (_timer != null)
+            {
+                _timer.Stop();
+                if (_srcCounter != null && numberOfOperations > 0)
+                {
+                    var elapsed = TimeSpan.FromTicks(_timer.Elapsed.Ticks / numberOfOperations);
+                    for (int i = 0; i < numberOfOperations; i++)
+                        _srcCounter.RegisterMeasurement(elapsed);
+                }
+            }
+        }
+
+        /// <summary>
         /// Остановка таймера и фиксация измерения
         /// </summary>
         public void Dispose()

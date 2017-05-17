@@ -12,9 +12,8 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Library for collecting and tracking performance metrics in your .NET applications.</description>
     <releaseNotes>
-      v2.1.1 (30.03.2016)
-      - Escaping points and spaces in Instance and Counter names for Graphite counters
-      - TimeCounterTimer: group completion support
+      v2.1.2 (17.05.2017)
+      - Performance: avoid closure creation in MultiInstanceCategory
     </releaseNotes>
     <copyright>Copyright 2014</copyright>
     <tags>Qoollo PerformanceCounters PerformanceCounter PerfCounters Performance Perf Counters Counter Health Profiling Monitoring perfmon Graphite</tags>

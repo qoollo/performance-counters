@@ -1,3 +1,6 @@
+v2.1.2 (17.05.2017)
+- Performance: avoid closure creation in MultiInstanceCategory
+
 v2.1.1 (30.03.2016)
 - Escaping points and spaces in Instance and Counter names for Graphite counters
 - TimeCounterTimer: group completion support

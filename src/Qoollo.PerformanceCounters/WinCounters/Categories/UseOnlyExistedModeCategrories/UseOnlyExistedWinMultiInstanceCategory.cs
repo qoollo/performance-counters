@@ -99,13 +99,14 @@ namespace Qoollo.PerformanceCounters.WinCounters.Categories.UseOnlyExistedModeCa
         {
             get
             {
-                var result = _instances.GetOrAdd(instanceName, (name) => 
-                    {
-                        if (!HasWinInstance(instanceName))
-                            throw new CategoryCreationException("Can't get not existed instance in mode 'UseOnlyExisted'. Category: " + this.ToString() + ", Instance: " + instanceName);
-                        
-                        return new WinInstanceInMultiInstanceCategory(this, name);
-                    });
+                WinInstanceInMultiInstanceCategory result = null;
+                if (!_instances.TryGetValue(instanceName, out result))
+                {
+                    if (!HasWinInstance(instanceName))
+                        throw new CategoryCreationException("Can't get not existed instance in mode 'UseOnlyExisted'. Category: " + this.ToString() + ", Instance: " + instanceName);
+
+                    result = new WinInstanceInMultiInstanceCategory(this, instanceName);
+                }
 
                 if (result.State == WinCategoryState.Created)
                     result.Init();

@@ -64,7 +64,11 @@ namespace Qoollo.PerformanceCounters.CompositeCounters.Categories
         {
             get
             {
-                return _instances.GetOrAdd(instanceName, (name) => new CompositeInstanceInMultiInstanceCategory(this, name, _wrappedCategories.Select(wc => wc[name])));
+                CompositeInstanceInMultiInstanceCategory result = null;
+                if (!_instances.TryGetValue(instanceName, out result))
+                    result = _instances.GetOrAdd(instanceName, new CompositeInstanceInMultiInstanceCategory(this, instanceName, _wrappedCategories.Select(wc => wc[instanceName])));
+
+                return result;
             }
         }
 

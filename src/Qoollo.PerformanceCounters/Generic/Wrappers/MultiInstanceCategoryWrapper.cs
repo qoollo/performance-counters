@@ -113,6 +113,21 @@ namespace Qoollo.PerformanceCounters
 
 
         /// <summary>
+        /// Создаёт новый инстанс с добавлением во внутреннюю категорию
+        /// </summary>
+        /// <param name="name">Имя инстанса</param>
+        /// <returns>Инстанс</returns>
+        private T CreateInstanceWithName(string name)
+        {
+            var inst = new T();
+
+            var category = _category[name];
+            inst.InitInstance(this, category, _counters);
+
+            return inst;
+        }
+
+        /// <summary>
         /// Получение или создание инстанса
         /// </summary>
         /// <param name="instanceName">Имя инстанса</param>
@@ -121,17 +136,11 @@ namespace Qoollo.PerformanceCounters
         {
             get
             {
-                var instance = _instances.GetOrAdd(instanceName, (name) =>
-                {
-                    var inst = new T();
+                T result;
+                if (!_instances.TryGetValue(instanceName, out result))
+                    result = _instances.GetOrAdd(instanceName, CreateInstanceWithName(instanceName));
 
-                    var category = _category[instanceName];
-                    inst.InitInstance(this, category, _counters);
-
-                    return inst;
-                });
-
-                return instance;
+                return result;
             }
         }
 

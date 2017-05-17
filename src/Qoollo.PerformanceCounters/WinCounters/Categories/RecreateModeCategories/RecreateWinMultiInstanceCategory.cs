@@ -59,7 +59,10 @@ namespace Qoollo.PerformanceCounters.WinCounters.Categories.RecreateModeCategori
         {
             get
             {
-                var result = _instances.GetOrAdd(instanceName, (name) => new WinInstanceInMultiInstanceCategory(this, name));
+                WinInstanceInMultiInstanceCategory result = null;
+                if (!_instances.TryGetValue(instanceName, out result))
+                    result = _instances.GetOrAdd(instanceName, new WinInstanceInMultiInstanceCategory(this, instanceName));
+
                 if (result.State == WinCategoryState.Created && State == WinCategoryState.Initialized)
                     result.Init();
 

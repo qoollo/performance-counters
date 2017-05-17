@@ -113,11 +113,14 @@ namespace Qoollo.PerformanceCounters.NetCounters.Categories
         {
             get
             {
-                return _instances.GetOrAdd(instanceName, (name) =>
-                    {
-                        _isChildInstancesChanged = true;
-                        return new NetInstanceInMultiInstanceCategory(this, name);
-                    });
+                NetInstanceInMultiInstanceCategory result = null;
+                if (!_instances.TryGetValue(instanceName, out result))
+                {
+                    _isChildInstancesChanged = true;
+                    result = _instances.GetOrAdd(instanceName, new NetInstanceInMultiInstanceCategory(this, instanceName));
+                }
+
+                return result;
             }
         }
 

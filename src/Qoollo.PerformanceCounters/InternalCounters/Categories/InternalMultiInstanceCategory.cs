@@ -60,7 +60,11 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Categories
         {
             get
             {
-                return _instances.GetOrAdd(instanceName, (name) => new InternalInstanceInMultiInstanceCategory(this, name));
+                InternalInstanceInMultiInstanceCategory result = null;
+                if (!_instances.TryGetValue(instanceName, out result))
+                    result = _instances.GetOrAdd(instanceName, new InternalInstanceInMultiInstanceCategory(this, instanceName));
+
+                return result;
             }
         }
 

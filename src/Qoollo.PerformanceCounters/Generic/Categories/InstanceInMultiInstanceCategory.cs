@@ -74,6 +74,16 @@ namespace Qoollo.PerformanceCounters
         }
 
         /// <summary>
+        /// Возвращает ранее созданный счетчик производительности (NumberOfItemsCounter)
+        /// </summary>
+        /// <param name="counterName">Имя счётчика</param>
+        /// <returns>Счётчик</returns>
+        public virtual DeltaCountCounter GetCounterDeltaCounter(string counterName)
+        {
+            return (DeltaCountCounter)GetCounter(counterName, CounterTypes.DeltaCount);
+        }
+
+        /// <summary>
         /// Возвращает ранее созданный счетчик производительности (AverageTimeCounter)
         /// </summary>
         /// <param name="counterName">Имя счётчика</param>

@@ -212,6 +212,7 @@
     <Compile Include="CompositeCounters\Counters\CompositeAverageCountCounter.cs" />
     <Compile Include="CompositeCounters\Counters\CompositeAverageTimeCounter.cs" />
     <Compile Include="CompositeCounters\Counters\CompositeCounterDescriptor.cs" />
+    <Compile Include="CompositeCounters\Counters\CompositeDeltaCountCounter.cs" />
     <Compile Include="CompositeCounters\Counters\CompositeElapsedTimeCounter.cs" />
     <Compile Include="CompositeCounters\Counters\CompositeMomentTimeCounter.cs" />
     <Compile Include="CompositeCounters\Counters\CompositeNumberOfItemsCounter.cs" />
@@ -224,6 +225,7 @@
     <Compile Include="Configuration\PerfCountersConfiguration.cs" />
     <Compile Include="Configuration\PerfCountersTypeEnum.cs" />
     <Compile Include="Exceptions\PerformanceCountersConfigurationException.cs" />
+    <Compile Include="Generic\Counters\DeltaCountCounter.cs" />
     <Compile Include="GraphiteCounters\CountersInfoAggregating\GraphiteCountersInfoAggregator.cs" />
     <Compile Include="GraphiteCounters\CountersValueDistribution\GraphiteCountersPrefixConverter.cs" />
     <Compile Include="GraphiteCounters\CountersValueDistribution\GraphiteCountersValueDistributor.cs" />
@@ -232,6 +234,7 @@
     <Compile Include="GraphiteCounters\Net\GraphiteCountersStableNetClient.cs" />
     <Compile Include="GraphiteCounters\Net\IGraphiteCountersAPI.cs" />
     <Compile Include="Helpers\LocalMachineInfo.cs" />
+    <Compile Include="InternalCounters\Counters\InternalDeltaCountCounter.cs" />
     <Compile Include="NetCounters\Categories\INetCategoriesExtendedInfo.cs" />
     <Compile Include="NetCounters\Categories\NetEmptyCategory.cs" />
     <Compile Include="NetCounters\Categories\NetInstanceInMultiInstanceCategory.cs" />
@@ -251,6 +254,7 @@
     <Compile Include="NetCounters\Net\PerfCountersNetClient.cs" />
     <Compile Include="NetCounters\Net\PerfCountersNetServer.cs" />
     <Compile Include="NetCounters\Net\PerfCountersStableNetClient.cs" />
+    <Compile Include="NullCounters\Counters\NullDeltaCountCounter.cs" />
     <Compile Include="PerfCountersContainer.cs" />
     <Compile Include="Exceptions\CategoryCreationException.cs" />
     <Compile Include="Exceptions\CounterNotExistException.cs" />
@@ -322,6 +326,7 @@
     <Compile Include="WinCounters\Counters\WinAverageCountCounter.cs" />
     <Compile Include="WinCounters\Counters\WinAverageTimeCounter.cs" />
     <Compile Include="WinCounters\Counters\WinCounterDescriptor.cs" />
+    <Compile Include="WinCounters\Counters\WinDeltaCountCounter.cs" />
     <Compile Include="WinCounters\Counters\WinElapsedTimeCounter.cs" />
     <Compile Include="WinCounters\Counters\WinMomentTimeCounter.cs" />
     <Compile Include="WinCounters\Counters\WinNumberOfItemsCounter.cs" />

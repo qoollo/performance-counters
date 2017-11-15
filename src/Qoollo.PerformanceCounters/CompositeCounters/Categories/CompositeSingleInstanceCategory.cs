@@ -72,6 +72,9 @@ namespace Qoollo.PerformanceCounters.CompositeCounters.Categories
                 case CounterTypes.NumberOfItems:
                     res = new CompositeNumberOfItemsCounter(counterName, counterDescription, _wrappedCategories.Select(wc => wc.CreateNumberOfItemsCounter(counterName, counterDescription)));
                     break;
+                case CounterTypes.DeltaCount:
+                    res = new CompositeDeltaCountCounter(counterName, counterDescription, _wrappedCategories.Select(wc => wc.CreateDeltaCountCounter(counterName, counterDescription)));
+                    break;
                 case CounterTypes.AverageTime:
                     res = new CompositeAverageTimeCounter(counterName, counterDescription, _wrappedCategories.Select(wc => wc.CreateAverageTimeCounter(counterName, counterDescription)));
                     break;

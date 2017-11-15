@@ -40,6 +40,16 @@ namespace Qoollo.PerformanceCounters
             return (NumberOfItemsCounter)CreateCounter(CounterTypes.NumberOfItems, counterName, counterDescription);
         }
 
+        /// <summary>
+        /// Создать счётчик определённого типа (NumberOfItemsCounter)
+        /// </summary>
+        /// <param name="counterName">Имя счетчика</param>
+        /// <param name="counterDescription">Описание счетчика</param>
+        /// <returns>Счётчик</returns>
+        public virtual DeltaCountCounter CreateDeltaCountCounter(string counterName, string counterDescription)
+        {
+            return (DeltaCountCounter)CreateCounter(CounterTypes.DeltaCount, counterName, counterDescription);
+        }
 
         /// <summary>
         /// Создать счётчик определённого типа (AverageTimeCounter)
@@ -130,6 +140,15 @@ namespace Qoollo.PerformanceCounters
             return (NumberOfItemsCounter)GetCounter(counterName, CounterTypes.NumberOfItems);
         }
 
+        /// <summary>
+        /// Возвращает ранее созданный счетчик производительности (NumberOfItemsCounter)
+        /// </summary>
+        /// <param name="counterName">Имя счетчика</param>
+        /// <returns>Счётчик</returns>
+        public virtual DeltaCountCounter GetDeltaCountCounter(string counterName)
+        {
+            return (DeltaCountCounter)GetCounter(counterName, CounterTypes.DeltaCount);
+        }
 
         /// <summary>
         /// Возвращает ранее созданный счетчик производительности (AverageTimeCounter)

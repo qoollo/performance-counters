@@ -24,6 +24,9 @@ namespace Qoollo.PerformanceCounters
             if (type == typeof(NumberOfItemsCounter))
                 return CounterTypes.NumberOfItems;
 
+            if (type == typeof(DeltaCountCounter))
+                return CounterTypes.DeltaCount;
+
             if (type == typeof(AverageTimeCounter))
                 return CounterTypes.AverageTime;
 

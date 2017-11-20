@@ -140,5 +140,13 @@ namespace Qoollo.PerformanceCounters.CompositeCounters.Counters
         {
             get { return _wrappedCounters[0].CurrentValue; }
         }
+
+        public override long Measure()
+        {
+            long result = _wrappedCounters[0].Measure();
+            for (int i = 1; i < _wrappedCounters.Length; i++)
+                _wrappedCounters[i].Measure();
+            return result;
+        }
     }
 }

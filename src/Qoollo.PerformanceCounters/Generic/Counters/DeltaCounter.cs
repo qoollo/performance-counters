@@ -59,6 +59,12 @@ namespace Qoollo.PerformanceCounters
         public abstract long CurrentValue { get; }
 
         /// <summary>
+        /// Take next sample interval and return its value
+        /// </summary>
+        /// <returns>Difference between counter raw value during sample interval</returns>
+        public abstract long Measure();
+
+        /// <summary>
         /// Reset the counter value
         /// </summary>
         public override void Reset()

@@ -14,7 +14,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
     public sealed class InternalDeltaCounter : DeltaCounter
     {
         private int _syncFlag;
-        private long _lastValue;
+        private long _currentValue;
 
         /// <summary>
         /// Дескриптор для счётчика InternalNumberOfItemsCounter
@@ -54,9 +54,6 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
 
         // ===================
 
-        private long _value;
-
-
         /// <summary>
         /// Конструктор InternalNumberOfItemsCounter
         /// </summary>
@@ -65,7 +62,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         public InternalDeltaCounter(string name, string description)
             : base(name, description)
         {
-            _value = 0;
+            _currentValue = 0;
         }
 
         /// <summary>
@@ -74,7 +71,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <returns>Текущее значение или Counter.FailureNum</returns>
         public override long Decrement()
         {
-            return Interlocked.Decrement(ref _value);
+            return Interlocked.Decrement(ref _currentValue);
         }
 
         /// <summary>
@@ -84,7 +81,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <returns>Текущее значение или Counter.FailureNum</returns>
         public override long DecrementBy(long value)
         {
-            return Interlocked.Add(ref _value, -value);
+            return Interlocked.Add(ref _currentValue, -value);
         }
 
         /// <summary>
@@ -93,7 +90,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <returns>Текущее значение или Counter.FailureNum</returns>
         public override long Increment()
         {
-            return Interlocked.Increment(ref _value);
+            return Interlocked.Increment(ref _currentValue);
         }
 
         /// <summary>
@@ -103,7 +100,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <returns>Текущее значение или Counter.FailureNum</returns>
         public override long IncrementBy(long value)
         {
-            return Interlocked.Add(ref _value, value);
+            return Interlocked.Add(ref _currentValue, value);
         }
 
         /// <summary>
@@ -112,23 +109,34 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <param name="value">Новое значение</param>
         public override void SetValue(long value)
         {
-            Interlocked.Exchange(ref _value, value);
+            Interlocked.Exchange(ref _currentValue, value);
         }
 
         /// <summary>
         /// Получает текущее значение счетчика производительности
         /// </summary>
-        public override long CurrentValue
-        {
-            get
-            {
-                var value =  Interlocked.Read(ref _value);
-                var result = value - _lastValue;
-                _lastValue = value;
-                ReleaseLock();
+        public override long CurrentValue => Interlocked.Read(ref _currentValue);
 
-                return result;
+        /// <summary>
+        /// Take next sample interval and return its value
+        /// </summary>
+        /// <returns>Difference between counter raw value during sample interval</returns>
+        public override long Measure()
+        {
+            long currentValue = 0;
+            try { }
+            finally
+            {
+                var sw = new SpinWait();
+                while (!TryTakeLock())
+                    sw.SpinOnce();
+
+                GetValueAtomic(out currentValue);
+                Interlocked.Exchange(ref _currentValue, 0);
+
+                ReleaseLock();
             }
+            return currentValue;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -140,6 +148,31 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         private void ReleaseLock()
         {
             Interlocked.Exchange(ref _syncFlag, 0);
+        }
+
+        /// <summary>
+        /// Try atomically read _currentValue field
+        /// </summary>
+        /// <param name="curVal">current value</param>
+        /// <returns>Success or failure</returns>
+        private bool TryGetValue(out long curVal)
+        {
+            curVal = Interlocked.Read(ref _currentValue);
+            return curVal == Interlocked.Read(ref _currentValue);
+        }
+
+        /// <summary>
+        /// Get value atomically
+        /// </summary>
+        /// <param name="curVal">Current value</param>
+        private void GetValueAtomic(out long curVal)
+        {
+            bool isOk = false;
+            do
+            {
+                isOk = TryGetValue(out curVal);
+            }
+            while (!isOk);
         }
     }
 }

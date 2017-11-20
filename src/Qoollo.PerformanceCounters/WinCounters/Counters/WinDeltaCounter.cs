@@ -163,6 +163,19 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
         }
 
         /// <summary>
+        /// Take next sample interval and return its value
+        /// </summary>
+        /// <returns>Difference between counter raw value during sample interval</returns>
+        public override long Measure()
+        {
+            var counterCpy = _winCounter;
+            if (counterCpy == null)
+                return FailureNum;
+
+            return (long)counterCpy.NextValue();
+        }
+
+        /// <summary>
         /// Занести данные о необходимых счётчиках Windows в коллекцию
         /// </summary>
         /// <param name="col">Коллекция</param>

@@ -74,5 +74,10 @@ namespace Qoollo.PerformanceCounters.NullCounters.Counters
         {
             get { return 0; }
         }
+
+        public override long Measure()
+        {
+            return 0;
+        }
     }
 }

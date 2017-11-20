@@ -12,54 +12,54 @@ namespace Qoollo.PerformanceCounters
     public abstract class DeltaCounter : Counter
     {
         /// <summary>
-        /// Конструктор NumberOfItemsCounter
+        /// Constructor of DeltaCounter
         /// </summary>
-        /// <param name="name">Имя счётчика</param>
-        /// <param name="description">Описание счётчика</param>
+        /// <param name="name">Counter name</param>
+        /// <param name="description">Counter description</param>
         protected DeltaCounter(string name, string description)
             : base(name, description, CounterTypes.Delta)
         {
         }
 
         /// <summary>
-        /// Уменьшить значение на 1
+        /// Decrement counter value by 1
         /// </summary>
-        /// <returns>Текущее значение или Counter.FailureNum</returns>
+        /// <returns>Current value or Counter.FailureNum</returns>
         public abstract long Decrement();
 
         /// <summary>
-        /// Уменьшить значение на "value"
+        /// Decrement counter value by "value"
         /// </summary>
-        /// <param name="value">Значение, на которое уменьшаем</param>
-        /// <returns>Текущее значение или Counter.FailureNum</returns>
+        /// <param name="value">Decrement value</param>
+        /// <returns>Current value or Counter.FailureNum</returns>
         public abstract long DecrementBy(long value);
 
         /// <summary>
-        /// Увеличить значение на 1
+        /// Increment counter value by 1
         /// </summary>
-        /// <returns>Текущее значение или Counter.FailureNum</returns>
+        /// <returns>Current value or Counter.FailureNum</returns>
         public abstract long Increment();
 
         /// <summary>
-        /// Увеличить значение на "value"
+        /// Increment counter value by "value"
         /// </summary>
-        /// <param name="value">Значение, на которое увеличиваем</param>
-        /// <returns>Текущее значение или Counter.FailureNum</returns>
+        /// <param name="value">Increment value</param>
+        /// <returns>Current value or Counter.FailureNum</returns>
         public abstract long IncrementBy(long value);
 
         /// <summary>
-        /// Задать значение
+        /// Set current counter value
         /// </summary>
-        /// <param name="value">Новое значение</param>
+        /// <param name="value">New value</param>
         public abstract void SetValue(long value);
 
         /// <summary>
-        /// Получает текущее значение счетчика производительности
+        /// Get current counter value
         /// </summary>
         public abstract long CurrentValue { get; }
 
         /// <summary>
-        /// Сброс значения счётчика
+        /// Reset the counter value
         /// </summary>
         public override void Reset()
         {
@@ -68,9 +68,9 @@ namespace Qoollo.PerformanceCounters
 
 
         /// <summary>
-        /// Преобразование в строку с информацией
+        /// Returns a string that represents the counter including value
         /// </summary>
-        /// <returns>Строка</returns>
+        /// <returns>String representation</returns>
         public override string ToString()
         {
             return string.Format("[Value: {0}, Name: {1}, CounterType: {2}]", CurrentValue, Name, Type);

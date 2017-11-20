@@ -7,16 +7,16 @@ using System.Threading.Tasks;
 namespace Qoollo.PerformanceCounters.NullCounters.Counters
 {
     /// <summary>
-    /// Счетчик мгновенного значения, показывающий последнее наблюдавшееся значение, для NullCounters
+    /// Null Counter for the difference between the raw value at the beginning and the end of the measured time frame
     /// </summary>
-    public sealed class NullDeltaCountCounter : DeltaCountCounter
+    public sealed class NullDeltaCounter : DeltaCounter
     {
         /// <summary>
         /// Конструктор NullNumberOfItemsCounter
         /// </summary>
         /// <param name="name">Имя счётчика</param>
         /// <param name="description">Описание счётчика</param>
-        public NullDeltaCountCounter(string name, string description)
+        public NullDeltaCounter(string name, string description)
             : base(name, description)
         {
         }

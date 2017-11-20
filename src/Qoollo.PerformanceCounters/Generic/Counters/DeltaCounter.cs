@@ -7,17 +7,17 @@ using System.Threading.Tasks;
 namespace Qoollo.PerformanceCounters
 {
     /// <summary>
-    /// Счетчик мгновенного значения, показывающий последнее наблюдавшееся значение
+    /// Abstract Counter for the difference between the raw value at the beginning and the end of the measured time frame
     /// </summary>
-    public abstract class DeltaCountCounter : Counter
+    public abstract class DeltaCounter : Counter
     {
         /// <summary>
         /// Конструктор NumberOfItemsCounter
         /// </summary>
         /// <param name="name">Имя счётчика</param>
         /// <param name="description">Описание счётчика</param>
-        protected DeltaCountCounter(string name, string description)
-            : base(name, description, CounterTypes.DeltaCount)
+        protected DeltaCounter(string name, string description)
+            : base(name, description, CounterTypes.Delta)
         {
         }
 

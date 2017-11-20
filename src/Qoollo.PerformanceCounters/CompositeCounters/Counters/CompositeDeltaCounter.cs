@@ -1,25 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Qoollo.PerformanceCounters.InternalCounters.Counters
+namespace Qoollo.PerformanceCounters.CompositeCounters.Counters
 {
     /// <summary>
-    /// Счетчик мгновенного значения, показывающий последнее наблюдавшееся значение для InternalCounters
+    /// Composite Counter for the difference between the raw value at the beginning and the end of the measured time frame (for CompositeCounters)
     /// </summary>
-    public sealed class InternalDeltaCountCounter : DeltaCountCounter
+    public sealed class CompositeDeltaCounter : DeltaCounter
     {
-        private int _syncFlag;
-        private long _lastValue;
-
         /// <summary>
-        /// Дескриптор для счётчика InternalNumberOfItemsCounter
+        /// Descriptor of CompositeDeltaCountCounter
         /// </summary>
-        private class Descriptor : InternalCounterDescriptor
+        private class Descriptor : CompositeCounterDescriptor
         {
             /// <summary>
             /// Конструктор Descriptor
@@ -27,45 +20,57 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
             /// <param name="name">Имя счётчика</param>
             /// <param name="description">Описание счётчика</param>
             public Descriptor(string name, string description)
-                : base(name, description, CounterTypes.DeltaCount)
+                : base(name, description, CounterTypes.Delta)
             {
             }
 
             /// <summary>
             /// Метод создания счётчика из дескриптора
             /// </summary>
+            /// <param name="counters">Оборачиваемые счётчики</param>
             /// <returns>Созданный счётчик</returns>
-            public override Counter CreateCounter()
+            public override Counter CreateCounter(IEnumerable<Counter> counters)
             {
-                return new InternalNumberOfItemsCounter(this.Name, this.Description);
+                return new CompositeDeltaCounter(this.Name, this.Description, counters.Cast<DeltaCounter>());
             }
         }
 
         /// <summary>
-        /// Метод создания дескриптора для InternalNumberOfItemsCounter
+        /// Метод создания дескриптора для CompositeDeltaCounter
         /// </summary>
         /// <param name="name">Имя счётчика</param>
         /// <param name="description">Описание счётчика</param>
         /// <returns>Дескриптор</returns>
-        internal static InternalCounterDescriptor CreateDescriptor(string name, string description)
+        internal static CompositeCounterDescriptor CreateDescriptor(string name, string description)
         {
             return new Descriptor(name, description);
         }
 
         // ===================
 
-        private long _value;
+
+        /// <summary>
+        /// Оборачиваемые счётчики
+        /// </summary>
+        private readonly DeltaCounter[] _wrappedCounters;
 
 
         /// <summary>
-        /// Конструктор InternalNumberOfItemsCounter
+        /// Конструктор CompositeDeltaCounter
         /// </summary>
         /// <param name="name">Имя счётчика</param>
         /// <param name="description">Описание счётчика</param>
-        public InternalDeltaCountCounter(string name, string description)
+        /// <param name="counters">Оборачиваемые счётчики</param>
+        public CompositeDeltaCounter(string name, string description, IEnumerable<DeltaCounter> counters)
             : base(name, description)
         {
-            _value = 0;
+            if (counters == null)
+                throw new ArgumentNullException("counters");
+
+            _wrappedCounters = counters.ToArray();
+
+            if (_wrappedCounters.Length == 0)
+                _wrappedCounters = new DeltaCounter[] { new NullCounters.Counters.NullDeltaCounter(name, description),  };
         }
 
         /// <summary>
@@ -74,7 +79,10 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <returns>Текущее значение или Counter.FailureNum</returns>
         public override long Decrement()
         {
-            return Interlocked.Decrement(ref _value);
+            long result = _wrappedCounters[0].Decrement();
+            for (int i = 1; i < _wrappedCounters.Length; i++)
+                _wrappedCounters[i].Decrement();
+            return result;
         }
 
         /// <summary>
@@ -84,7 +92,10 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <returns>Текущее значение или Counter.FailureNum</returns>
         public override long DecrementBy(long value)
         {
-            return Interlocked.Add(ref _value, -value);
+            long result = _wrappedCounters[0].DecrementBy(value);
+            for (int i = 1; i < _wrappedCounters.Length; i++)
+                _wrappedCounters[i].DecrementBy(value);
+            return result;
         }
 
         /// <summary>
@@ -93,7 +104,10 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <returns>Текущее значение или Counter.FailureNum</returns>
         public override long Increment()
         {
-            return Interlocked.Increment(ref _value);
+            long result = _wrappedCounters[0].Increment();
+            for (int i = 1; i < _wrappedCounters.Length; i++)
+                _wrappedCounters[i].Increment();
+            return result;
         }
 
         /// <summary>
@@ -103,7 +117,10 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <returns>Текущее значение или Counter.FailureNum</returns>
         public override long IncrementBy(long value)
         {
-            return Interlocked.Add(ref _value, value);
+            long result = _wrappedCounters[0].IncrementBy(value);
+            for (int i = 1; i < _wrappedCounters.Length; i++)
+                _wrappedCounters[i].IncrementBy(value);
+            return result;
         }
 
         /// <summary>
@@ -112,7 +129,8 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <param name="value">Новое значение</param>
         public override void SetValue(long value)
         {
-            Interlocked.Exchange(ref _value, value);
+            for (int i = 0; i < _wrappedCounters.Length; i++)
+                _wrappedCounters[i].SetValue(value);
         }
 
         /// <summary>
@@ -120,26 +138,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// </summary>
         public override long CurrentValue
         {
-            get
-            {
-                var value =  Interlocked.Read(ref _value);
-                var result = value - _lastValue;
-                _lastValue = value;
-                ReleaseLock();
-
-                return result;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool TryTakeLock()
-        {
-            return Interlocked.CompareExchange(ref _syncFlag, 1, 0) == 0;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReleaseLock()
-        {
-            Interlocked.Exchange(ref _syncFlag, 0);
+            get { return _wrappedCounters[0].CurrentValue; }
         }
     }
 }

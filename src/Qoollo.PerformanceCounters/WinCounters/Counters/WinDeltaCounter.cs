@@ -10,9 +10,9 @@ using System.Threading.Tasks;
 namespace Qoollo.PerformanceCounters.WinCounters.Counters
 {
     /// <summary>
-    /// Счетчик мгновенного значения, показывающий последнее наблюдавшееся значение, для WinCounters
+    /// Windows Counter for the difference between the raw value at the beginning and the end of the measured time frame
     /// </summary>
-    public class WinDeltaCountCounter : DeltaCountCounter, IWinCounterInitialization
+    public class WinDeltaCounter : DeltaCounter, IWinCounterInitialization
     {
         /// <summary>
         /// Дескриптор для счётчика WinNumberOfItemsCounter
@@ -26,7 +26,7 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
             /// <param name="description">Описание счётчика</param>
             /// <param name="info">Информация о функционировании</param>
             public Descriptor(string name, string description, WinCountersWorkingInfo info)
-                : base(name, description, CounterTypes.DeltaCount, info)
+                : base(name, description, CounterTypes.Delta, info)
             {
             }
 
@@ -36,7 +36,7 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
             /// <returns>Созданный счётчик</returns>
             public override Counter CreateCounter()
             {
-                return new WinDeltaCountCounter(this.Name, this.Description, this.Info);
+                return new WinDeltaCounter(this.Name, this.Description, this.Info);
             }
             /// <summary>
             /// Занести данные о необходимых счётчиках Windows в коллекцию
@@ -73,7 +73,7 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
         /// <param name="name">Имя счётчика</param>
         /// <param name="description">Описание счётчика</param>
         /// <param name="info">Информация о функционировании</param>
-        internal WinDeltaCountCounter(string name, string description, WinCountersWorkingInfo info)
+        internal WinDeltaCounter(string name, string description, WinCountersWorkingInfo info)
             : base(name, description)
         {
             _state = WinCounterState.Created;

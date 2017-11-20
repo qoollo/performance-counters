@@ -52,7 +52,7 @@ namespace Qoollo.PerformanceCounters.WinCounters.Helpers
                 //    break;
                 //case CounterTypes.SampleFraction:
                 //    break;
-                case CounterTypes.DeltaCount:
+                case CounterTypes.Delta:
                     if (prefer64BitCounter)
                         return PerformanceCounterType.CounterDelta64;
                     else
@@ -88,7 +88,7 @@ namespace Qoollo.PerformanceCounters.WinCounters.Helpers
                 //    break;
                 case PerformanceCounterType.CounterDelta32:
                 case PerformanceCounterType.CounterDelta64:
-                    resLocType = CounterTypes.DeltaCount;
+                    resLocType = CounterTypes.Delta;
                     return true;
                 //case PerformanceCounterType.CounterMultiBase:
                 //    break;
@@ -243,8 +243,8 @@ namespace Qoollo.PerformanceCounters.WinCounters.Helpers
             {
                 case CounterTypes.NumberOfItems:
                     return new WinNumberOfItemsCounter(counterName, counterDescription, info);
-                case CounterTypes.DeltaCount:
-                    return new WinDeltaCountCounter(counterName, counterDescription, info);
+                case CounterTypes.Delta:
+                    return new WinDeltaCounter(counterName, counterDescription, info);
                 case CounterTypes.AverageTime:
                     return new WinAverageTimeCounter(counterName, counterDescription, info);
                 case CounterTypes.AverageCount:
@@ -274,8 +274,8 @@ namespace Qoollo.PerformanceCounters.WinCounters.Helpers
             {
                 case CounterTypes.NumberOfItems:
                     return WinNumberOfItemsCounter.CreateDescriptor(counterName, counterDescription, info);
-                case CounterTypes.DeltaCount:
-                    return WinDeltaCountCounter.CreateDescriptor(counterName, counterDescription, info);
+                case CounterTypes.Delta:
+                    return WinDeltaCounter.CreateDescriptor(counterName, counterDescription, info);
                 case CounterTypes.AverageTime:
                     return WinAverageTimeCounter.CreateDescriptor(counterName, counterDescription, info);
                 case CounterTypes.AverageCount:

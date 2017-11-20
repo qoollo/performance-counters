@@ -81,9 +81,9 @@
         //SampleFraction,
 
         /// <summary>
-        /// Счетчик разницы, показывающий изменение в измеряемом атрибуте между двумя последними интервалами измерения.
+        /// Counter for the difference between the raw value at the beginning and the end of the measured time frame.
         /// </summary>
-        DeltaCount,
+        Delta,
 
 
         /// <summary>

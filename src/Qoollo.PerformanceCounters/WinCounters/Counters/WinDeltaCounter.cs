@@ -66,6 +66,7 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
         private readonly WinCountersWorkingInfo _info;
         private PerformanceCounter _winCounter;
         private volatile WinCounterState _state;
+        private long _lastMeasuredValue;
 
         /// <summary>
         /// Конструктор WinNumberOfItemsCounter
@@ -78,6 +79,7 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
         {
             _state = WinCounterState.Created;
             _info = info;
+            _lastMeasuredValue = 0;
         }
 
         /// <summary>
@@ -158,7 +160,9 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
                 if (counterCpy == null)
                     return Counter.FailureNum;
 
-                return counterCpy.RawValue;
+                long lastMeasuredValue = Interlocked.Read(ref _lastMeasuredValue);
+                long currentValue = counterCpy.RawValue;
+                return currentValue - lastMeasuredValue;
             }
         }
 
@@ -172,7 +176,9 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
             if (counterCpy == null)
                 return FailureNum;
 
-            return (long)counterCpy.NextValue();
+            var curValue = (long) counterCpy.NextValue();
+            Interlocked.Exchange(ref _lastMeasuredValue, curValue);
+            return curValue;
         }
 
         /// <summary>

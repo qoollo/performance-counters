@@ -141,6 +141,10 @@ namespace Qoollo.PerformanceCounters.CompositeCounters.Counters
             get { return _wrappedCounters[0].CurrentValue; }
         }
 
+        /// <summary>
+        /// Take next sample interval and return its value
+        /// </summary>
+        /// <returns>Difference between counter raw value during sample interval</returns>
         public override long Measure()
         {
             long result = _wrappedCounters[0].Measure();

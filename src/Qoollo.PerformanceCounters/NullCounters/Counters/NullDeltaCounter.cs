@@ -75,6 +75,10 @@ namespace Qoollo.PerformanceCounters.NullCounters.Counters
             get { return 0; }
         }
 
+        /// <summary>
+        /// Take next sample interval and return its value
+        /// </summary>
+        /// <returns>Difference between counter raw value during sample interval</returns>
         public override long Measure()
         {
             return 0;

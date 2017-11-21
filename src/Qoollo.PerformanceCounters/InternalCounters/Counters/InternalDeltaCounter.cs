@@ -15,6 +15,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
     {
         private int _syncFlag;
         private long _currentValue;
+        private long _lastMeasuredValue;
 
         /// <summary>
         /// Дескриптор для счётчика InternalNumberOfItemsCounter
@@ -63,6 +64,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
             : base(name, description)
         {
             _currentValue = 0;
+            _lastMeasuredValue = 0;
         }
 
         /// <summary>
@@ -115,7 +117,15 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <summary>
         /// Получает текущее значение счетчика производительности
         /// </summary>
-        public override long CurrentValue => Interlocked.Read(ref _currentValue);
+        public override long CurrentValue
+        {
+            get
+            {
+                long lastMeasuredValue = Interlocked.Read(ref _lastMeasuredValue);
+                long currentValue = Interlocked.Read(ref _currentValue);
+                return currentValue - lastMeasuredValue;
+            }
+        }
 
         /// <summary>
         /// Take next sample interval and return its value
@@ -123,7 +133,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         /// <returns>Difference between counter raw value during sample interval</returns>
         public override long Measure()
         {
-            long currentValue = 0;
+            long result = 0;
             try { }
             finally
             {
@@ -131,12 +141,13 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
                 while (!TryTakeLock())
                     sw.SpinOnce();
 
-                GetValueAtomic(out currentValue);
-                Interlocked.Exchange(ref _currentValue, 0);
+                long currentValue = Interlocked.Read(ref _currentValue);
+                long lastMeasuredValue = Interlocked.Exchange(ref _lastMeasuredValue, currentValue);
+                result = currentValue - lastMeasuredValue;
 
                 ReleaseLock();
             }
-            return currentValue;
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -148,31 +159,6 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         private void ReleaseLock()
         {
             Interlocked.Exchange(ref _syncFlag, 0);
-        }
-
-        /// <summary>
-        /// Try atomically read _currentValue field
-        /// </summary>
-        /// <param name="curVal">current value</param>
-        /// <returns>Success or failure</returns>
-        private bool TryGetValue(out long curVal)
-        {
-            curVal = Interlocked.Read(ref _currentValue);
-            return curVal == Interlocked.Read(ref _currentValue);
-        }
-
-        /// <summary>
-        /// Get value atomically
-        /// </summary>
-        /// <param name="curVal">Current value</param>
-        private void GetValueAtomic(out long curVal)
-        {
-            bool isOk = false;
-            do
-            {
-                isOk = TryGetValue(out curVal);
-            }
-            while (!isOk);
         }
     }
 }

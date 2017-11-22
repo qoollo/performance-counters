@@ -1,4 +1,4 @@
-Qoollo Performance Counters
+Qoollo Performance Counters [![NuGet](https://img.shields.io/nuget/v/Qoollo.Turbo.svg?style=flat-square)](https://www.nuget.org/packages/Qoollo.PerformanceCounters/) [![Build status](https://ci.appveyor.com/api/projects/status/50imw6fx4r488x24/branch/master?svg=true)](https://ci.appveyor.com/project/agend/performance-counters/branch/master)
 ====================
 
 Extremely useful library for collecting and tracking performance metrics in your .NET applications.

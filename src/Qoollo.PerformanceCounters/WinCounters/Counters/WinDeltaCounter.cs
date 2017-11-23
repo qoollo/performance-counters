@@ -176,9 +176,9 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
             if (counterCpy == null)
                 return FailureNum;
 
-            var curValue = (long) counterCpy.NextValue();
-            Interlocked.Exchange(ref _lastMeasuredValue, curValue);
-            return curValue;
+            var rawValue = counterCpy.RawValue;
+            Interlocked.Exchange(ref _lastMeasuredValue, rawValue);
+            return (long)counterCpy.NextValue();
         }
 
         /// <summary>

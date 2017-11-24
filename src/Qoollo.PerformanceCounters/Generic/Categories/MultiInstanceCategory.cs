@@ -60,6 +60,16 @@ namespace Qoollo.PerformanceCounters
         }
 
         /// <summary>
+        /// Create counter (DeltaCounter)
+        /// </summary>
+        /// <param name="counterName">Имя счетчика</param>
+        /// <param name="counterDescription">Описание счетчика</param>
+        public virtual void CreateDeltaCounter(string counterName, string counterDescription)
+        {
+            CreateCounter(CounterTypes.Delta, counterName, counterDescription);
+        }
+
+        /// <summary>
         /// Создать счётчик определённого типа (AverageTimeCounter)
         /// </summary>
         /// <param name="counterName">Имя счетчика</param>

@@ -64,7 +64,7 @@ namespace Qoollo.PerformanceCounters
         public abstract Counter GetCounter(string counterName, CounterTypes expectedCounterType);
 
         /// <summary>
-        /// Возвращает ранее созданный счетчик производительности (NumberOfItemsCounter)
+        /// Returns existing counter (NumberOfItemsCounter)
         /// </summary>
         /// <param name="counterName">Имя счётчика</param>
         /// <returns>Счётчик</returns>
@@ -74,7 +74,17 @@ namespace Qoollo.PerformanceCounters
         }
 
         /// <summary>
-        /// Возвращает ранее созданный счетчик производительности (AverageTimeCounter)
+        /// Returns existing DeltaCounter by name
+        /// </summary>
+        /// <param name="counterName">Имя счётчика</param>
+        /// <returns>Счётчик</returns>
+        public virtual DeltaCounter GetDeltaCounter(string counterName)
+        {
+            return (DeltaCounter)GetCounter(counterName, CounterTypes.Delta);
+        }
+
+        /// <summary>
+        /// Returns existing counter (AverageTimeCounter)
         /// </summary>
         /// <param name="counterName">Имя счётчика</param>
         /// <returns>Счётчик</returns>
@@ -85,7 +95,7 @@ namespace Qoollo.PerformanceCounters
 
 
         /// <summary>
-        /// Возвращает ранее созданный счетчик производительности (AverageCountCounter)
+        /// Returns existing counter (AverageCountCounter)
         /// </summary>
         /// <param name="counterName">Имя счётчика</param>
         /// <returns>Счётчик</returns>
@@ -96,7 +106,7 @@ namespace Qoollo.PerformanceCounters
 
 
         /// <summary>
-        /// Возвращает ранее созданный счетчик производительности (OperationsPerSecondCounter)
+        /// Returns existing counter (OperationsPerSecondCounter)
         /// </summary>
         /// <param name="counterName">Имя счётчика</param>
         /// <returns>Счётчик</returns>
@@ -106,7 +116,7 @@ namespace Qoollo.PerformanceCounters
         }
 
         /// <summary>
-        /// Возвращает ранее созданный счетчик производительности (ElapsedTimeCounter)
+        /// Returns existing counter (ElapsedTimeCounter)
         /// </summary>
         /// <param name="counterName">Имя счётчика</param>
         /// <returns>Счётчик</returns>
@@ -117,7 +127,7 @@ namespace Qoollo.PerformanceCounters
 
 
         /// <summary>
-        /// Возвращает ранее созданный счетчик производительности (MomentTimeCounter)
+        /// Returns existing counter (MomentTimeCounter)
         /// </summary>
         /// <param name="counterName">Имя счётчика</param>
         /// <returns>Счётчик</returns>

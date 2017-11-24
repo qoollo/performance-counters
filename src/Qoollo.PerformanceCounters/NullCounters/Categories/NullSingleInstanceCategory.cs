@@ -40,6 +40,8 @@ namespace Qoollo.PerformanceCounters.NullCounters.Categories
             {
                 case CounterTypes.NumberOfItems:
                     return new NullNumberOfItemsCounter(counterName, counterDescription);
+                case CounterTypes.Delta:
+                    return new NullDeltaCounter(counterName, counterDescription);
                 case CounterTypes.AverageTime:
                     return new NullAverageTimeCounter(counterName, counterDescription);
                 case CounterTypes.AverageCount:

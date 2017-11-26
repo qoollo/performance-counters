@@ -39,7 +39,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
             /// <returns>Созданный счётчик</returns>
             public override Counter CreateCounter()
             {
-                return new InternalNumberOfItemsCounter(this.Name, this.Description);
+                return new InternalDeltaCounter(this.Name, this.Description);
             }
         }
 

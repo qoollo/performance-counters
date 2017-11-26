@@ -16,6 +16,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         private int _syncFlag;
         private long _currentValue;
         private long _lastMeasuredValue;
+        private long _lastInternallyMeasuredValue;
 
         /// <summary>
         /// Дескриптор для счётчика InternalNumberOfItemsCounter
@@ -38,7 +39,7 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
             /// <returns>Созданный счётчик</returns>
             public override Counter CreateCounter()
             {
-                return new InternalNumberOfItemsCounter(this.Name, this.Description);
+                return new InternalDeltaCounter(this.Name, this.Description);
             }
         }
 
@@ -63,8 +64,10 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         public InternalDeltaCounter(string name, string description)
             : base(name, description)
         {
+            _syncFlag = 0;
             _currentValue = 0;
             _lastMeasuredValue = 0;
+            _lastInternallyMeasuredValue = 0;
         }
 
         /// <summary>
@@ -159,6 +162,18 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Counters
         private void ReleaseLock()
         {
             Interlocked.Exchange(ref _syncFlag, 0);
+        }
+
+        /// <summary>
+        /// Take next sample interval and return its value (for internal measurements)
+        /// </summary>
+        /// <returns>Difference between counter raw value during sample interval</returns>
+        internal long MeasureInternal()
+        {
+            // No synchronization required as we guaranty that access will be from a single thread
+            long currentValue = Interlocked.Read(ref _currentValue);
+            long lastMeasuredValue = Interlocked.Exchange(ref _lastInternallyMeasuredValue, currentValue);
+            return currentValue - lastMeasuredValue;
         }
     }
 }

@@ -132,6 +132,8 @@ namespace Qoollo.PerformanceCounters.GraphiteCounters.CountersValueDistribution
             {
                 case CounterTypes.NumberOfItems:
                     return new GraphiteCounterData(name, ((NumberOfItemsCounter)counter).CurrentValue);
+                case CounterTypes.Delta:
+                    return new GraphiteCounterData(name, ((InternalCounters.Counters.InternalDeltaCounter)counter).MeasureInternal());
                 case CounterTypes.OperationsPerSecond:
                     return new GraphiteCounterData(name, ((OperationsPerSecondCounter)counter).CurrentValue);
                 case CounterTypes.AverageCount:

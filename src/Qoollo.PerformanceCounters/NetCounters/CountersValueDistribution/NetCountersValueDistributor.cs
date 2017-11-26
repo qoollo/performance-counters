@@ -161,6 +161,8 @@ namespace Qoollo.PerformanceCounters.NetCounters.CountersValueDistribution
             {
                 case CounterTypes.NumberOfItems:
                     return new ItemCounterValueData(counter.Name, counter.Type, ((NumberOfItemsCounter)counter).CurrentValue);
+                case CounterTypes.Delta:
+                    return new ItemCounterValueData(counter.Name, counter.Type, ((InternalCounters.Counters.InternalDeltaCounter)counter).MeasureInternal());
                 case CounterTypes.OperationsPerSecond:
                     return new FractionCounterValueData(counter.Name, counter.Type, ((OperationsPerSecondCounter)counter).CurrentValue);
                 case CounterTypes.AverageCount:

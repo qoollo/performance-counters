@@ -133,6 +133,9 @@ namespace Qoollo.PerformanceCounters.CompositeCounters.Categories
                 case CounterTypes.NumberOfItems:
                     res = CompositeNumberOfItemsCounter.CreateDescriptor(counterName, counterDescription);
                     break;
+                case CounterTypes.Delta:
+                    res = CompositeDeltaCounter.CreateDescriptor(counterName, counterDescription);
+                    break;
                 case CounterTypes.AverageTime:
                     res = CompositeAverageTimeCounter.CreateDescriptor(counterName, counterDescription);
                     break;

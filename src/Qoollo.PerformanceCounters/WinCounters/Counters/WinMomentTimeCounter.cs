@@ -36,7 +36,7 @@ namespace Qoollo.PerformanceCounters.WinCounters.Counters
             /// <returns>Созданный счётчик</returns>
             public override Counter CreateCounter()
             {
-                return new WinAverageTimeCounter(this.Name, this.Description, this.Info);
+                return new WinMomentTimeCounter(this.Name, this.Description, this.Info);
             }
 
             /// <summary>

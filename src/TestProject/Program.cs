@@ -60,6 +60,9 @@ namespace TestProject
 
             [Counter("Test MomentTimeCounter")]
             public MomentTimeCounter MomentTime { get; private set; }
+
+            [Counter("Test DeltaCounter")]
+            public DeltaCounter Delta { get; private set; }
         }
 
 
@@ -73,6 +76,24 @@ namespace TestProject
 
             [Counter("Count")]
             public NumberOfItemsCounter Count { get; private set; }
+
+            [Counter("Elapsed")]
+            public ElapsedTimeCounter Elapsed { get; private set; }
+
+            [Counter("OperationPerSec")]
+            public OperationsPerSecondCounter OperationPerSec { get; private set; }
+
+            [Counter("Avg")]
+            public AverageCountCounter Avg { get; private set; }
+
+            [Counter("AvgTime")]
+            public AverageTimeCounter AvgTime { get; private set; }
+
+            [Counter("MomentTime")]
+            public MomentTimeCounter MomentTime { get; private set; }
+
+            [Counter("Delta")]
+            public DeltaCounter Delta { get; private set; }
         }
 
         public class TestMultiInstanceCategory : MultiInstanceCategoryWrapper<TestInstance>
@@ -96,6 +117,20 @@ namespace TestProject
             counterFactory.InitAll();
 
             var momentTimer = PerfCounters.TestSingle.MomentTime.StartNew();
+
+            for (int i = 0; i < 100; i++)
+            {
+                PerfCounters.TestSingle.Delta.Increment();
+                Thread.Sleep(50);
+
+                if (i % 10 == 9)
+                {
+                    Console.WriteLine("Delta Current = " + PerfCounters.TestSingle.Delta.CurrentValue.ToString());
+                    Console.WriteLine("Delta Measure = " + PerfCounters.TestSingle.Delta.Measure().ToString());
+                }
+            }
+            Console.WriteLine("Delta Last = " + PerfCounters.TestSingle.Delta.CurrentValue.ToString());
+
 
 
             for (int i = 0; i < 1000; i++)

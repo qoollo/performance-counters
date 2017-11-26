@@ -125,6 +125,9 @@ namespace Qoollo.PerformanceCounters.InternalCounters.Categories
                 case CounterTypes.NumberOfItems:
                     res = InternalNumberOfItemsCounter.CreateDescriptor(counterName, counterDescription);
                     break;
+                case CounterTypes.Delta:
+                    res = InternalDeltaCounter.CreateDescriptor(counterName, counterDescription);
+                    break;
                 case CounterTypes.AverageTime:
                     res = InternalAverageTimeCounter.CreateDescriptor(counterName, counterDescription);
                     break;

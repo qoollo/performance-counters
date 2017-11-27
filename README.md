@@ -18,12 +18,13 @@ Main features:
 
 
 Supported metrics (counter types):
-- Number of Items (example: measure umber of received requests);
+- Number of Items (example: measure number of received requests);
 - Operations per Second (example: measure performance of your code);
 - Average Count (example: measure average size of queue);
 - Average Time (example: measure average execution time of your functions);
 - Moment Time (example: fixate time of some process that executing only once);
-- Elapsed Time (example: measure the total execution time of your application).
+- Elapsed Time (example: measure the total execution time of your application);
+- Delta (example: measure changes in processing rate);
 
 
 

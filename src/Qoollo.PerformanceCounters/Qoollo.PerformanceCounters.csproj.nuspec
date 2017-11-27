@@ -12,8 +12,8 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Library for collecting and tracking performance metrics in your .NET applications.</description>
     <releaseNotes>
-      v2.1.2 (17.05.2017)
-      - Performance: avoid closure creation in MultiInstanceCategory
+      v2.2.0 (27.11.2017)
+      - DeltaCounter added
     </releaseNotes>
     <copyright>Copyright 2014</copyright>
     <tags>Qoollo PerformanceCounters PerformanceCounter PerfCounters Performance Perf Counters Counter Health Profiling Monitoring perfmon Graphite</tags>

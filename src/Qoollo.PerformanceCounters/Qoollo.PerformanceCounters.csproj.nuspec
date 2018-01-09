@@ -12,6 +12,8 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Library for collecting and tracking performance metrics in your .NET applications.</description>
     <releaseNotes>
+      v2.2.1 (09.01.2018)
+      - Assembly strong name signing
       v2.2.0 (27.11.2017)
       - DeltaCounter added
     </releaseNotes>

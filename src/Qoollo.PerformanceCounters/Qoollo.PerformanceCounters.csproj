@@ -191,6 +191,12 @@
     <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>PerformanceCounters.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -350,6 +356,7 @@
     <None Include="PerfCountersConfigHelpers\PerfCountersAppConfigSchema.xsd">
       <SubType>Designer</SubType>
     </None>
+    <None Include="PerformanceCounters.snk" />
     <None Include="Qoollo.PerformanceCounters.csproj.nuspec" />
     <None Include="Qoollo.PerformanceCounters.Config.nuspec" />
     <None Include="PerfCountersConfigHelpers\PerfCountersAppConfigSample.config" />
